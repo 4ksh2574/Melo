@@ -1,35 +1,25 @@
 # Melo
 
-**Closer, even from afar.**
+Melo is a private, Instagram-inspired social and messaging space for exactly four approved members.
 
-Melo is a private, mobile-first messaging app for a circle of exactly four people.
-
-## Current implementation
-
-- Light-first, responsive chat interface with soft white surfaces and teal accents.
-- Firebase Authentication: Google sign-in, email/password sign-in, and password reset.
-- Firestore real-time group chat at `rooms/the-four/messages`.
-- Membership gate: only users with an admin-created `members/{uid}` document whose `active` field is `true` can access messages.
-- No public sign-up form. Create email/password accounts from Firebase Console, or let the four intended people sign in with Google once and then approve their UIDs.
+## Current features
+- Google and email/password sign-in, plus password reset.
+- Instagram-inspired home feed layout, Stories-style member row, Explore, Inbox and Profile navigation.
+- Discover the other approved members and follow/unfollow them.
+- Direct messages unlock after you follow a member.
+- Real-time one-to-one messaging and the existing group conversation foundation.
+- Firestore membership checks and follow-gated chat rules.
 
 ## Firebase setup
+1. Enable Google and Email/Password in Authentication.
+2. Add `4ksh2574.github.io` to Authentication → Settings → Authorized domains.
+3. Publish `firestore.rules` in Firestore → Rules.
+4. Each intended person must sign in once. In Authentication → Users, copy each UID.
+5. In Firestore, create a `members` document for each of the four UIDs, with `active` (boolean) = `true`. Add optional `displayName` and `username` string fields to show their preferred names.
+6. Do not create member records for anyone else. Email/password accounts must be created by the project owner in Authentication → Users → Add user. Google sign-in users remain pending until their UID is approved.
 
-1. In Firebase Authentication, enable **Google** and **Email/Password**.
-2. Under Authentication → Settings → Authorized domains, add `4ksh2574.github.io`.
-3. Create a Cloud Firestore database.
-4. In Firestore Rules, publish the contents of `firestore.rules`.
-5. Each intended member must sign in once. Find their UID in Firebase Authentication → Users.
-6. In Firestore Data, create a collection named `members`. For each of the four approved UIDs, create a document whose document ID is exactly that UID, with field `active` (boolean) set to `true`.
-7. Do not create membership documents for anyone else. Do not enable public account creation or share admin credentials.
+## Deploy
+GitHub Pages: `main` branch, root folder. URL: https://4ksh2574.github.io/Melo/
 
-Email/password users must first be created by the project owner in Authentication → Users → Add user. Google users can complete Google sign-in, but remain in the pending screen until their UID is approved.
-
-## Deployment
-
-Enable GitHub Pages from the `main` branch and root folder. Expected URL: `https://4ksh2574.github.io/Melo/`.
-
-## Current limits
-
-This is the first connected foundation: authentication, approval gating, and one real-time group chat. Direct messages, attachments, voice notes, reactions, edits/deletes, typing indicators, read receipts, notifications, and ephemeral updates are not implemented yet. Do not treat the app as fully featured until those are added and tested.
-
-The Firebase web config is included in the frontend. Firebase web API keys identify the project; security comes from Authentication and Firestore Rules, not from hiding this config. Never put service-account keys or private credentials in this repository.
+## Notes
+The visual layout is an original Melo design inspired by familiar social-app patterns, not an exact reproduction of Instagram. The current feed uses a welcome panel; post creation, Stories uploads, media sharing, profile editing, follow requests/private-account approval, notifications and richer chat tools are future work. Follow currently means a member can initiate a DM after following another approved member; the followed member can reply in that thread.
