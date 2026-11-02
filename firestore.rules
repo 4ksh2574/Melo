@@ -1,27 +1,43 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
-      return request.auth != null;
-    }
-    function isApprovedMember() {
+    function signedIn() { return request.auth != null; }
+    function approved() {
       return signedIn()
         && exists(/databases/$(database)/documents/members/$(request.auth.uid))
         && get(/databases/$(database)/documents/members/$(request.auth.uid)).data.active == true;
     }
-
-    // Each member can read only their own approval record.
-    // Only a project owner/admin should create or edit member records in the Firebase Console.
-    match /members/{uid} {
-      allow get: if signedIn() && request.auth.uid == uid;
-      allow list, create, update, delete: if false;
+    function approvedUid(uid) {
+      return exists(/databases/$(database)/documents/members/$(uid))
+        && get(/databases/$(database)/documents/members/$(uid)).data.active == true;
+    }
+    function follows(fromUid, toUid) {
+      return exists(/databases/$(database)/documents/follows/$(fromUid + "_" + toUid));
     }
 
-    // Shared group conversation for the four approved members.
+    match /members/{uid} {
+      allow get: if approved() && (uid == request.auth.uid || approvedUid(uid));
+      allow list: if approved();
+      allow create, update, delete: if false;
+    }
+
+    match /follows/{followId} {
+      allow read: if approved();
+      allow create: if approved()
+        && request.resource.data.keys().hasOnly(['followerUid','followedUid','createdAt'])
+        && request.resource.data.followerUid == request.auth.uid
+        && request.resource.data.followedUid is string
+        && request.resource.data.followedUid != request.auth.uid
+        && approvedUid(request.resource.data.followedUid)
+        && followId == request.auth.uid + "_" + request.resource.data.followedUid;
+      allow delete: if approved() && resource.data.followerUid == request.auth.uid;
+      allow update: if false;
+    }
+
     match /rooms/the-four/messages/{messageId} {
-      allow read: if isApprovedMember();
-      allow create: if isApprovedMember()
-        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'text', 'createdAt'])
+      allow read: if approved();
+      allow create: if approved()
+        && request.resource.data.keys().hasOnly(['uid','displayName','text','createdAt'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() <= 80
@@ -32,9 +48,38 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Deny all other documents unless a rule is added intentionally.
-    match /{document=**} {
-      allow read, write: if false;
+    match /chats/{chatId} {
+      allow read: if approved() && request.auth.uid in resource.data.memberIds;
+      allow create: if approved()
+        && request.resource.data.keys().hasOnly(['memberIds','createdAt'])
+        && request.resource.data.memberIds is list
+        && request.resource.data.memberIds.size() == 2
+        && request.auth.uid in request.resource.data.memberIds
+        && approvedUid(request.resource.data.memberIds[0])
+        && approvedUid(request.resource.data.memberIds[1])
+        && follows(request.auth.uid,
+          request.resource.data.memberIds[0] == request.auth.uid
+            ? request.resource.data.memberIds[1] : request.resource.data.memberIds[0]);
+      allow update, delete: if false;
+
+      match /messages/{messageId} {
+        function chatMember() {
+          return approved()
+            && exists(/databases/$(database)/documents/chats/$(chatId))
+            && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.memberIds;
+        }
+        allow read: if chatMember();
+        allow create: if chatMember()
+          && request.resource.data.keys().hasOnly(['uid','text','createdAt'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 4000
+          && request.resource.data.createdAt == request.time;
+        allow update, delete: if false;
+      }
     }
+
+    match /{document=**} { allow read, write: if false; }
   }
 }
