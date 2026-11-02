@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isApprovedMember() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/members/$(request.auth.uid)).data.active == true;
+    }
+
+    // Each member can read only their own approval record.
+    // Only a project owner/admin should create or edit member records in the Firebase Console.
+    match /members/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+
+    // Shared group conversation for the four approved members.
+    match /rooms/the-four/messages/{messageId} {
+      allow read: if isApprovedMember();
+      allow create: if isApprovedMember()
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'text', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 4000
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // Deny all other documents unless a rule is added intentionally.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
