@@ -294,13 +294,20 @@ export default function App() {
   async function openConversation(conversation: Conversation) {
     if (!user) return;
     try {
-      if (conversation.type === "direct") {
+      if (conversation.type === "direct" || conversation.id === "the-four") {
         const ref = doc(db, "conversations", conversation.id);
         const snapshot = await getDoc(ref);
         if (!snapshot.exists()) {
-          await setDoc(ref, {
+          await setDoc(ref, conversation.id === "the-four" ? {
+            type: "group",
+            title: "The Four",
+            memberIds: conversation.memberIds.slice().sort(),
+            createdBy: user.uid,
+            createdAt: serverTimestamp(),
+            isPermanent: true,
+          } : {
             type: "direct",
-            memberIds: conversation.memberIds,
+            memberIds: conversation.memberIds.slice().sort(),
             createdBy: user.uid,
             createdAt: serverTimestamp(),
           });
