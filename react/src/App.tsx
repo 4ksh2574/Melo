@@ -46,6 +46,7 @@ type Conversation = {
   legacy?: boolean;
 };
 type Gate = "checking" | "signed-out" | "approved" | "pending" | "error";
+type ThemePreference = "light" | "dark" | "system";
 type Tab = "home" | "explore" | "chats" | "activity" | "profile";
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "home", label: "Home", icon: "⌂" },
@@ -67,6 +68,10 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<Tab>("home");
+  const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
+    const saved = window.localStorage.getItem("melo-theme");
+    return saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
+  });
   const [members, setMembers] = useState<Member[]>([]);
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -82,6 +87,23 @@ export default function App() {
   const [groupPanel, setGroupPanel] = useState(false);
   const [groupTitle, setGroupTitle] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => {
+      const resolved = themePreference === "system"
+        ? (media.matches ? "dark" : "light")
+        : themePreference;
+      root.dataset.theme = resolved;
+      root.style.colorScheme = resolved;
+    };
+    window.localStorage.setItem("melo-theme", themePreference);
+    apply();
+    if (themePreference !== "system") return;
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, [themePreference]);
 
   useEffect(() => onAuthStateChanged(auth, async (nextUser) => {
     setUser(nextUser);
