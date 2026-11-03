@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type TouchEvent } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signInWithRedirect, signOut, type User } from "firebase/auth";
 import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { auth, db, googleProvider } from "./firebase";
@@ -55,7 +55,7 @@ export default function App(){
  if(gate==="pending"||gate==="error")return <main className="center"><section className="auth"><div className="brand">melo<span>.</span></div><h1>{gate==="pending"?"You're not in the circle yet.":"Connection issue"}</h1><p>{gate==="pending"?"This account hasn't been approved for Melo.":notice}</p><button className="secondary" onClick={()=>signOut(auth)}>Sign out</button></section></main>;
 
  const ordered=members.slice().sort((a,b)=>nameOf(a).localeCompare(nameOf(b)));
- const touchStart=(e:React.TouchEvent)=>{if(active)return;setSwipeX(e.touches[0].clientX);setSwipeY(e.touches[0].clientY);};
+ const touchStart=(e:TouchEvent)=>{if(active)return;setSwipeX(e.touches[0].clientX);setSwipeY(e.touches[0].clientY);};
  const touchEnd=(e:React.TouchEvent)=>{if(swipeX===null||swipeY===null||active)return;const dx=e.changedTouches[0].clientX-swipeX,dy=e.changedTouches[0].clientY-swipeY;setSwipeX(null);setSwipeY(null);if(Math.abs(dx)>85&&Math.abs(dx)>Math.abs(dy)*1.4){const i=tabs.findIndex(t=>t.id===tab),n=Math.max(0,Math.min(tabs.length-1,i+(dx<0?1:-1)));setTab(tabs[n].id);}};
  const label=tab==="home"?"Your circle":tab==="explore"?"People":tab==="chats"?"Messages":tab==="activity"?"Activity":"Profile";
  return <main className="app" onTouchStart={touchStart} onTouchEnd={touchEnd}>
