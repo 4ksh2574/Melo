@@ -9,12 +9,15 @@ import {
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  Timestamp,
+  updateDoc,
   setDoc,
   where,
 } from "firebase/firestore";
@@ -34,6 +37,7 @@ type Message = {
   uid: string;
   text: string;
   createdAt?: Stamp;
+  expiresAt?: Stamp;
 };
 type Conversation = {
   id: string;
@@ -43,10 +47,13 @@ type Conversation = {
   createdAt?: Stamp;
   updatedAt?: Stamp;
   isPermanent?: boolean;
+  disappearingAfterSeconds?: number;
   legacy?: boolean;
 };
 type Gate = "checking" | "signed-out" | "approved" | "pending" | "error";
 type ThemePreference = "light" | "dark" | "system";
+type ChatPanel = "chat" | "details" | "media" | "disappearing" | "screenshots" | "safety" | "nickname";
+type MediaTab = "media" | "docs" | "links";
 type Tab = "home" | "explore" | "chats" | "activity" | "profile";
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "home", label: "Home", icon: "⌂" },
@@ -59,6 +66,17 @@ const chatId = (a: string, b: string) => [a, b].sort().join("__");
 const nameOf = (m?: Member) => m?.displayName || m?.username || "Melo member";
 const initials = (s: string) => (s.trim()[0] || "M").toUpperCase();
 const stampValue = (stamp?: Stamp) => stamp?.toMillis?.() ?? 0;
+const expiryChoices = [
+  { seconds: 0, label: "Off" },
+  { seconds: 300, label: "5 minutes" },
+  { seconds: 3600, label: "1 hour" },
+  { seconds: 28800, label: "8 hours" },
+  { seconds: 86400, label: "1 day" },
+  { seconds: 604800, label: "1 week" },
+  { seconds: 2419200, label: "4 weeks" },
+];
+const expiryLabel = (seconds: number) =>
+  expiryChoices.find((choice) => choice.seconds === seconds)?.label || "Off";
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -77,6 +95,10 @@ export default function App() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [legacyChats, setLegacyChats] = useState<Conversation[]>([]);
   const [active, setActive] = useState<Conversation | null>(null);
+  const [chatPanel, setChatPanel] = useState<ChatPanel>("chat");
+  const [mediaTab, setMediaTab] = useState<MediaTab>("media");
+  const [nickname, setNickname] = useState("");
+  const [disappearingAfterSeconds, setDisappearingAfterSeconds] = useState(0);
   const [messages, setMessages] = useState<Message[]>([]);
   const [legacyMessages, setLegacyMessages] = useState<Message[]>([]);
   const [fourMessages, setFourMessages] = useState<Message[]>([]);
@@ -205,6 +227,18 @@ export default function App() {
   }, [gate, user, members, membersLoaded]);
 
   useEffect(() => {
+    setChatPanel("chat");
+    setMediaTab("media");
+    if (!active || !user) {
+      setNickname("");
+      setDisappearingAfterSeconds(0);
+      return;
+    }
+    setNickname(window.localStorage.getItem("melo-nickname:" + user.uid + ":" + active.id) || "");
+    setDisappearingAfterSeconds(active.disappearingAfterSeconds || 0);
+  }, [active?.id, user?.uid]);
+
+  useEffect(() => {
     if (!user || !active) {
       setMessages([]);
       setLegacyMessages([]);
@@ -216,11 +250,20 @@ export default function App() {
     setFourMessages([]);
     const base = collection(db, "conversations", active.id, "messages");
     const unsubscribeNew = onSnapshot(query(base, orderBy("createdAt", "asc")), (snapshot) => {
-      setMessages(snapshot.docs.map((item) => ({
+      const loaded = snapshot.docs.map((item) => ({
         id: item.id,
         source: "conversation",
         ...item.data(),
-      } as Message)));
+      } as Message));
+      const now = Date.now();
+      const live = loaded.filter((message) => !message.expiresAt || stampValue(message.expiresAt) > now);
+      loaded.filter((message) => message.expiresAt && stampValue(message.expiresAt) <= now)
+        .forEach((message) => {
+          deleteDoc(doc(base, message.id)).catch((error) => {
+            console.warn("Expired message cleanup will retry later:", error);
+          });
+        });
+      setMessages(live);
     }, (error) => {
       console.error("Conversation messages:", error);
       setNotice("New messages couldn't be loaded. Check Firestore rules.");
@@ -283,9 +326,39 @@ export default function App() {
   const titleOf = (conversation: Conversation) => {
     if (conversation.id === "the-four") return "The Four";
     if (conversation.type === "group") return conversation.title || "Private group";
+    if (active?.id === conversation.id && nickname.trim()) return nickname.trim();
     const otherId = conversation.memberIds.find((id) => id !== user?.uid);
     return nameOf(allMembers.find((member) => member.uid === otherId));
   };
+
+  const saveNickname = (value: string) => {
+    setNickname(value);
+    if (user && active) {
+      const key = "melo-nickname:" + user.uid + ":" + active.id;
+      if (value.trim()) window.localStorage.setItem(key, value.trim());
+      else window.localStorage.removeItem(key);
+    }
+  };
+
+  async function setExpiry(seconds: number) {
+    if (!active) return;
+    try {
+      await updateDoc(doc(db, "conversations", active.id), { disappearingAfterSeconds: seconds });
+      setDisappearingAfterSeconds(seconds);
+      setActive({ ...active, disappearingAfterSeconds: seconds });
+      setNotice(seconds === 0
+        ? "Disappearing messages turned off for new messages."
+        : "New messages will expire after " + expiryLabel(seconds) + ".");
+      setChatPanel("details");
+    } catch (error) {
+      console.error("Disappearing message setting:", error);
+      setNotice("Couldn't save this setting. Check the updated Firestore rules.");
+    }
+  }
+
+  const extractedLinks = allMessages.flatMap((message) => message.text.split(/\\s+/)
+    .filter((word) => word.startsWith("https://") || word.startsWith("http://"))
+    .map((url) => ({ url: url.replace(/[.,!?]+$/, ""), id: message.source + ":" + message.id, text: message.text })));
 
   async function openDirect(member: Member) {
     if (!user) return;
@@ -384,6 +457,9 @@ export default function App() {
         uid: user.uid,
         text,
         createdAt: serverTimestamp(),
+        ...(disappearingAfterSeconds > 0
+          ? { expiresAt: Timestamp.fromMillis(Date.now() + disappearingAfterSeconds * 1000) }
+          : {}),
       });
       setDraft("");
     } catch (error) {
@@ -479,25 +555,102 @@ export default function App() {
     {notice && <button className="noticebar" onClick={() => setNotice("")}>{notice}<b>×</b></button>}
 
     {active ? <section className="conversation">
-      <header className="conversation-head">
-        <button className="back" onClick={() => setActive(null)}>‹</button>
-        <div className="avatar">{active.type === "group" ? "✳" : initials(titleOf(active))}</div>
-        <div className="conversation-title"><strong>{titleOf(active)}</strong><small>{active.type === "group" ? active.memberIds.length + " members · Private group" : "Private conversation"}</small></div>
-      </header>
-      <div className="messages">
-        {allMessages.length ? allMessages.map((message) => {
-          const mine = message.uid === user?.uid;
-          const sender = allMembers.find((member) => member.uid === message.uid);
-          return <div key={message.source + ":" + message.id} className={"message-wrap " + (mine ? "mine-wrap" : "")}>
-            {active.type === "group" && !mine && <small className="message-sender">{nameOf(sender)}</small>}
-            <div className={"bubble " + (mine ? "mine" : "")}>{message.text}</div>
-          </div>;
-        }) : <p className="empty">A little hello goes a long way ✨</p>}
-      </div>
-      <form className="composer" onSubmit={sendMessage}>
-        <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write a message…" maxLength={4000} />
-        <button className="send" disabled={busy || !draft.trim()}>↑</button>
-      </form>
+      {chatPanel === "chat" ? <>
+        <header className="conversation-head">
+          <button className="back" onClick={() => setActive(null)} aria-label="Back to chats">‹</button>
+          <button className="chat-person-trigger" onClick={() => setChatPanel("details")} aria-label="Conversation details">
+            <span className="avatar">{active.type === "group" ? "✳" : initials(titleOf(active))}</span>
+            <span className="conversation-title"><strong>{titleOf(active)}</strong><small>{active.type === "group" ? active.memberIds.length + " members · Private group" : "Private conversation"}</small></span>
+          </button>
+          <button className="chat-more" onClick={() => setChatPanel("details")} aria-label="More conversation options">···</button>
+        </header>
+        <div className="messages">
+          {allMessages.length ? allMessages.map((message, index) => {
+            const mine = message.uid === user?.uid;
+            const sender = allMembers.find((member) => member.uid === message.uid);
+            return <div key={message.source + ":" + message.id}
+              className={"message-wrap message-enter " + (mine ? "mine-wrap" : "")}
+              style={{ animationDelay: Math.min(index, 10) * 24 + "ms" }}>
+              {active.type === "group" && !mine && <small className="message-sender">{nameOf(sender)}</small>}
+              <div className={"bubble " + (mine ? "mine" : "")}>{message.text}</div>
+            </div>;
+          }) : <p className="empty">A little hello goes a long way ✨</p>}
+        </div>
+        {disappearingAfterSeconds > 0 && <div className="expiry-banner">◷ New messages disappear after {expiryLabel(disappearingAfterSeconds).toLowerCase()}</div>}
+        <form className="composer" onSubmit={sendMessage}>
+          <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write a message…" maxLength={4000} />
+          <button className="send" disabled={busy || !draft.trim()}>↑</button>
+        </form>
+      </> : <div className="chat-subview">
+        <header className="subview-head">
+          <button className="back" onClick={() => setChatPanel(chatPanel === "details" ? "chat" : "details")} aria-label="Back">‹</button>
+          <h2>{chatPanel === "details" ? "Conversation info" : chatPanel === "media" ? "Media, Links, Docs" : chatPanel === "disappearing" ? "Disappearing messages" : chatPanel === "screenshots" ? "Screenshot protection" : chatPanel === "safety" ? "Safety number" : "Add nickname"}</h2>
+          {chatPanel === "nickname" && <button className="text-action" onClick={() => setChatPanel("details")}>Done</button>}
+          {chatPanel !== "nickname" && <span className="subview-spacer" />}
+        </header>
+        {chatPanel === "details" && <>
+          <div className="chat-profile-hero">
+            <div className="avatar detail-avatar">{active.type === "group" ? "✳" : initials(titleOf(active))}</div>
+            <h1>{titleOf(active)}</h1>
+            <p>{active.type === "group" ? active.memberIds.length + " members · Private group" : "Private conversation"}</p>
+            <button className="nickname-shortcut" onClick={() => setChatPanel("nickname")}>✎ {nickname ? "Edit nickname" : "Add nickname"}</button>
+          </div>
+          <div className="details-actions">
+            <button onClick={() => setChatPanel("media")}><span>▧</span><small>Media</small></button>
+            <button onClick={() => setChatPanel("disappearing")}><span>◷</span><small>Timer</small></button>
+            <button onClick={() => setChatPanel("nickname")}><span>✎</span><small>Nickname</small></button>
+          </div>
+          {active.type === "group" && <div className="detail-card">
+            <div className="detail-card-heading">Members <span>{active.memberIds.length}</span></div>
+            {allMembers.filter((member) => active.memberIds.includes(member.uid)).map((member) =>
+              <div className="detail-member" key={member.uid}><span className="avatar">{initials(nameOf(member))}</span><span>{nameOf(member)}</span>{member.uid === user?.uid && <small>You</small>}</div>
+            )}
+          </div>}
+          <div className="detail-card settings-list">
+            <button className="detail-row" onClick={() => setChatPanel("media")}><span className="detail-icon">▧</span><span><strong>Media, Links, Docs</strong><small>Shared items in this conversation</small></span><b>›</b></button>
+            <button className="detail-row" onClick={() => setChatPanel("disappearing")}><span className="detail-icon">◷</span><span><strong>Disappearing messages</strong><small>{expiryLabel(disappearingAfterSeconds)}</small></span><b>›</b></button>
+            <button className="detail-row" onClick={() => setChatPanel("screenshots")}><span className="detail-icon">▣</span><span><strong>Block screenshots</strong><small>Not supported in a web browser</small></span><b>›</b></button>
+            <button className="detail-row" onClick={() => setChatPanel("safety")}><span className="detail-icon">◇</span><span><strong>Safety number</strong><small>End-to-end verification unavailable</small></span><b>›</b></button>
+          </div>
+        </>}
+        {chatPanel === "media" && <>
+          <div className="media-tabs">
+            {(["media", "docs", "links"] as MediaTab[]).map((value) =>
+              <button key={value} className={mediaTab === value ? "selected" : ""} onClick={() => setMediaTab(value)}>
+                {value === "media" ? "Media" : value === "docs" ? "Docs" : "Links"}
+              </button>
+            )}
+          </div>
+          {mediaTab === "links" && extractedLinks.length ? <div className="shared-links">
+            {extractedLinks.map((item) => <a key={item.id} href={item.url} target="_blank" rel="noreferrer"><span>↗</span><div><strong>{item.url}</strong><small>{item.text}</small></div></a>)}
+          </div> : <div className="media-empty"><span>{mediaTab === "media" ? "▧" : mediaTab === "docs" ? "▤" : "↗"}</span><strong>No {mediaTab === "media" ? "media" : mediaTab === "docs" ? "documents" : "links"} yet</strong><p>{mediaTab === "media" ? "Photos and videos can be added when Melo's secure file sharing is introduced." : mediaTab === "docs" ? "Shared documents will appear here." : "Links shared in messages will appear here."}</p></div>}
+        </>}
+        {chatPanel === "disappearing" && <>
+          <div className="settings-intro"><span>◷</span><p>Choose how long <strong>new messages</strong> stay in this conversation. The timer starts when a message is sent. Existing messages are not changed.</p></div>
+          <div className="duration-list">
+            {expiryChoices.map((choice) => <button key={choice.seconds} className={disappearingAfterSeconds === choice.seconds ? "chosen" : ""} onClick={() => setExpiry(choice.seconds)}>
+              <span>{choice.label}</span>{disappearingAfterSeconds === choice.seconds && <b>✓</b>}
+            </button>)}
+          </div>
+          <p className="settings-footnote">Expired messages are hidden and cleaned up when a member opens this conversation again. This is not a guaranteed deletion timer while everyone is offline.</p>
+        </>}
+        {chatPanel === "screenshots" && <div className="capability-notice">
+          <span>▣</span><h3>Screenshot blocking isn't available on the web.</h3>
+          <p>A browser-based app cannot reliably stop the operating system or another device from capturing the screen. Melo won't show a switch that suggests otherwise.</p>
+          <div className="capability-status">Unavailable on this platform</div>
+        </div>}
+        {chatPanel === "safety" && <div className="capability-notice">
+          <span>◇</span><h3>Safety-number verification isn't available yet.</h3>
+          <p>Melo doesn't currently implement end-to-end encryption. Firebase protects data in transit and at rest, but that is not the same as end-to-end encryption. A verification code or QR here would be misleading.</p>
+          <div className="capability-status">End-to-end encryption not enabled</div>
+        </div>}
+        {chatPanel === "nickname" && <div className="nickname-page">
+          <div className="nickname-info">ⓘ This nickname is private to you and is saved only on this device.</div>
+          <label htmlFor="chat-nickname">Nickname</label>
+          <input id="chat-nickname" value={nickname} onChange={(event) => saveNickname(event.target.value)} placeholder="Add nickname" maxLength={40} autoFocus />
+          <button className="clear-nickname" onClick={() => saveNickname("")} disabled={!nickname}>Remove nickname</button>
+        </div>}
+      </div>}
     </section> : <>
       <section className="content" key={tab}>
         <div className="heading">
