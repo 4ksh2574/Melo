@@ -212,3 +212,16 @@ body{background:radial-gradient(ellipse at 50% -20%,var(--page-glow) 0%,var(--pa
  .chat-subview,.message-enter{animation:none!important}
  .details-actions button,.duration-list button,.bubble,.send{transition:none!important}
 }
+
+/* Remove browser blue tap highlights and focus rings on clickable buttons. */
+button,
+button:focus,
+button:focus-visible,
+[role="button"],
+[role="button"]:focus,
+[role="button"]:focus-visible {
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+button::-moz-focus-inner { border: 0; }
+::selection { background: #20ad9b44; color: inherit; }
