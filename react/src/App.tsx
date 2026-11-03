@@ -54,12 +54,10 @@ type Gate = "checking" | "signed-out" | "approved" | "pending" | "error";
 type ThemePreference = "light" | "dark" | "system";
 type ChatPanel = "chat" | "details" | "media" | "disappearing" | "screenshots" | "safety" | "nickname";
 type MediaTab = "media" | "docs" | "links";
-type Tab = "home" | "explore" | "chats" | "activity" | "profile";
+type Tab = "home" | "chats" | "profile";
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "home", label: "Home", icon: "⌂" },
-  { id: "explore", label: "People", icon: "⌕" },
   { id: "chats", label: "Chats", icon: "◌" },
-  { id: "activity", label: "Activity", icon: "♡" },
   { id: "profile", label: "Profile", icon: "◎" },
 ];
 const chatId = (a: string, b: string) => [a, b].sort().join("__");
@@ -680,28 +678,17 @@ export default function App() {
     </section> : <>
       <section className="content" key={tab}>
         <div className="heading">
-          <div><small>MELO · {label.toUpperCase()}</small><h1>{tab === "home" ? "Good to have you here." : label}</h1></div>
+          <div><small>MELO · {label.toUpperCase()}</small><h1>{tab === "home" ? "Your circle" : label}</h1></div>
           {tab === "home" && <div className="avatar">{initials(user?.displayName || "M")}</div>}
         </div>
 
         {tab === "home" && <>
-          <div className="section-title home-circle-title">Your circle <span>{members.length + 1} members</span></div>
           <div className="people-strip">
             <div className="person"><div className="avatar own">{initials(user?.displayName || "M")}</div><small>You</small></div>
             {ordered.map((member) => <button className="person" key={member.uid} onClick={() => openDirect(member)}>
               <div className="avatar">{initials(nameOf(member))}</div><small>{nameOf(member).split(" ")[0]}</small>
             </button>)}
           </div>
-        </>}
-
-        {tab === "explore" && <>
-          <div className="search"><span>⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find someone in your circle" /></div>
-          <div className="member-list">{filteredMembers.map((member) => <article className="member" key={member.uid}>
-            <div className="avatar">{initials(nameOf(member))}</div>
-            <div className="member-info"><strong>{nameOf(member)}</strong><small>@{member.username || "member"}</small></div>
-            <button className="outline" onClick={() => openDirect(member)}>Message</button>
-          </article>)}
-          {!filteredMembers.length && <p className="empty">No other approved members found.</p>}</div>
         </>}
 
         {tab === "chats" && <>
@@ -737,10 +724,6 @@ export default function App() {
           <p className="footnote">Only approved Melo members can open these conversations.</p>
         </>}
 
-        {tab === "activity" && <div className="empty-panel"><div className="empty-icon">♡</div>
-          <h3>Your circle's activity</h3><p>Reactions, comments and mentions will appear here as those features are introduced.</p>
-        </div>}
-
         {tab === "profile" && <div className="profile-card">
           {!settingsOpen ? <>
             <div className="profile-topline">
@@ -750,7 +733,6 @@ export default function App() {
             <div className="avatar large">{initials(user?.displayName || "M")}</div>
             <h2>{user?.displayName || "Melo member"}</h2><p>{user?.email}</p>
             <span className="member-badge">✓ Approved member</span>
-            <button className="secondary" onClick={() => signOut(auth)}>Sign out</button>
           </> : <>
             <div className="profile-settings-head">
               <button className="settings-back" type="button" onClick={() => setSettingsOpen(false)} aria-label="Back to profile">‹</button>
@@ -776,7 +758,11 @@ export default function App() {
               </div>
               <small className="settings-note">{themePreference === "system" ? "Follows your device appearance automatically." : "Your choice is saved on this device."}</small>
             </section>
-            <button className="secondary" onClick={() => signOut(auth)}>Sign out</button>
+            <section className="settings-card account-settings" aria-label="Account">
+              <div className="settings-heading"><div><small>ACCOUNT</small><h3>Account access</h3></div><span className="settings-symbol" aria-hidden="true">↗</span></div>
+              <p>Sign out of this device.</p>
+              <button className="signout-button" onClick={() => signOut(auth)}>Sign out</button>
+            </section>
           </>}
         </div>}
       </section>
