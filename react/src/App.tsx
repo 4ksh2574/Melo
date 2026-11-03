@@ -30,7 +30,7 @@ type Member = {
   active?: boolean;
   photoURL?: string;
 };
-type Stamp = { toMillis?: () => number; toDate?: () => Date } | null;
+type Stamp = { toMillis?: () => number; toDate?: () => Date } | number | null;
 type Message = {
   id: string;
   source: string;
@@ -49,6 +49,13 @@ type Conversation = {
   isPermanent?: boolean;
   disappearingAfterSeconds?: number;
   legacy?: boolean;
+  demo?: boolean;
+};
+type DemoStore = {
+  version: 1;
+  expiresAt: number;
+  conversations: Conversation[];
+  messages: Record<string, Message[]>;
 };
 type Gate = "checking" | "signed-out" | "approved" | "pending" | "error";
 type ThemePreference = "light" | "dark" | "system";
@@ -63,7 +70,53 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
 const chatId = (a: string, b: string) => [a, b].sort().join("__");
 const nameOf = (m?: Member) => m?.displayName || m?.username || "Melo member";
 const initials = (s: string) => (s.trim()[0] || "M").toUpperCase();
-const stampValue = (stamp?: Stamp) => stamp?.toMillis?.() ?? 0;
+const stampValue = (stamp?: Stamp) => typeof stamp === "number" ? stamp : stamp?.toMillis?.() ?? 0;
+const DEMO_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const demoMembers: Member[] = [
+  { uid: "demo-ava", displayName: "Ava Morgan" },
+  { uid: "demo-noah", displayName: "Noah Park" },
+  { uid: "demo-mira", displayName: "Mira Shah" },
+];
+function buildDemoStore(uid: string, now = Date.now()): DemoStore {
+  const memberIds = (ids: string[]) => [uid, ...ids].sort();
+  const message = (id: string, sender: string, text: string, minutesAgo: number): Message => ({
+    id, source: "demo", uid: sender, text, createdAt: now - minutesAgo * 60_000,
+  });
+  const conversations: Conversation[] = [
+    { id: "demo-direct-ava", type: "direct", title: "Ava Morgan", memberIds: memberIds(["demo-ava"]), demo: true, createdAt: now - 60 * 60_000, updatedAt: now - 2 * 60_000 },
+    { id: "demo-direct-noah", type: "direct", title: "Noah Park", memberIds: memberIds(["demo-noah"]), demo: true, createdAt: now - 2 * 60 * 60_000, updatedAt: now - 18 * 60_000 },
+    { id: "demo-group-weekend", type: "group", title: "Weekend plans", memberIds: memberIds(["demo-ava", "demo-noah", "demo-mira"]), demo: true, createdAt: now - 3 * 60 * 60_000, updatedAt: now - 7 * 60_000 },
+    { id: "demo-group-study", type: "group", title: "Study circle", memberIds: memberIds(["demo-noah", "demo-mira"]), demo: true, createdAt: now - 4 * 60 * 60_000, updatedAt: now - 28 * 60_000 },
+  ];
+  return {
+    version: 1,
+    expiresAt: now + DEMO_TTL_MS,
+    conversations,
+    messages: {
+      "demo-direct-ava": [
+        message("ava-1", "demo-ava", "Hey! This is a sample direct conversation.", 16),
+        message("ava-2", uid, "Nice — I’m testing how Melo feels on my phone.", 13),
+        message("ava-3", "demo-ava", "The sample messages stay on this device, by the way ✨", 2),
+      ],
+      "demo-direct-noah": [
+        message("noah-1", "demo-noah", "Have you tried the new chat layout?", 42),
+        message("noah-2", uid, "Yes. The inbox is looking much cleaner now.", 35),
+        message("noah-3", "demo-noah", "Great! This is just placeholder test data.", 18),
+      ],
+      "demo-group-weekend": [
+        message("weekend-1", "demo-ava", "Should we make a plan for the weekend?", 31),
+        message("weekend-2", "demo-noah", "I’m in. A relaxed catch-up sounds good.", 24),
+        message("weekend-3", "demo-mira", "Same here — let’s decide in this group.", 12),
+        message("weekend-4", uid, "Group chat testing looks good so far 👍", 7),
+      ],
+      "demo-group-study": [
+        message("study-1", "demo-mira", "I’ve added a few sample messages here.", 65),
+        message("study-2", "demo-noah", "The sender labels should show for everyone.", 48),
+        message("study-3", uid, "Perfect. Checking the group layout too.", 28),
+      ],
+    },
+  };
+}
 const expiryChoices = [
   { seconds: 0, label: "Off" },
   { seconds: 300, label: "5 minutes" },
@@ -93,6 +146,10 @@ export default function App() {
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [legacyChats, setLegacyChats] = useState<Conversation[]>([]);
+  const [demoConversations, setDemoConversations] = useState<Conversation[]>([]);
+  const [demoMessages, setDemoMessages] = useState<Record<string, Message[]>>({});
+  const [demoExpiresAt, setDemoExpiresAt] = useState(0);
+  const [demoReady, setDemoReady] = useState(false);
   const [active, setActive] = useState<Conversation | null>(null);
   const [chatPanel, setChatPanel] = useState<ChatPanel>("chat");
   const [mediaTab, setMediaTab] = useState<MediaTab>("media");
@@ -230,6 +287,48 @@ export default function App() {
   }, [gate, user, members, membersLoaded]);
 
   useEffect(() => {
+    if (gate !== "approved" || !user) {
+      setDemoConversations([]);
+      setDemoMessages({});
+      setDemoExpiresAt(0);
+      setDemoReady(false);
+      return;
+    }
+    setDemoReady(false);
+    const storageKey = "melo-demo-data:" + user.uid;
+    let store: DemoStore | null = null;
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as DemoStore;
+        if (parsed.version === 1 && parsed.expiresAt > Date.now()
+          && Array.isArray(parsed.conversations) && parsed.messages
+          && typeof parsed.messages === "object") store = parsed;
+      }
+    } catch (error) {
+      console.warn("Saved sample data could not be read; rebuilding it.", error);
+    }
+    if (!store) store = buildDemoStore(user.uid);
+    setDemoConversations(store.conversations);
+    setDemoMessages(store.messages);
+    setDemoExpiresAt(store.expiresAt);
+    setDemoReady(true);
+    try { window.localStorage.setItem(storageKey, JSON.stringify(store)); }
+    catch (error) { console.warn("Sample data could not be saved on this device.", error); }
+  }, [gate, user?.uid]);
+
+  useEffect(() => {
+    if (!demoReady || !user || !demoExpiresAt) return;
+    try {
+      window.localStorage.setItem("melo-demo-data:" + user.uid, JSON.stringify({
+        version: 1, expiresAt: demoExpiresAt, conversations: demoConversations, messages: demoMessages,
+      } satisfies DemoStore));
+    } catch (error) {
+      console.warn("Sample messages could not be saved on this device.", error);
+    }
+  }, [demoReady, demoExpiresAt, demoConversations, demoMessages, user?.uid]);
+
+  useEffect(() => {
     setChatPanel("chat");
     setMediaTab("media");
     if (!active || !user) {
@@ -271,6 +370,9 @@ export default function App() {
     setMessages([]);
     setLegacyMessages([]);
     setFourMessages([]);
+    if (active.demo) {
+      return;
+    }
     const base = collection(db, "conversations", active.id, "messages");
     const unsubscribeNew = onSnapshot(query(base, orderBy("createdAt", "asc")), (snapshot) => {
       const loaded = snapshot.docs.map((item) => ({
@@ -324,8 +426,8 @@ export default function App() {
   }, [user?.uid, active?.id]);
 
   const allMembers = useMemo(() => user
-    ? [{ uid: user.uid, displayName: user.displayName || user.email || "You" }, ...members]
-    : members, [user, members]);
+    ? [{ uid: user.uid, displayName: user.displayName || user.email || "You" }, ...members, ...(demoReady ? demoMembers : [])]
+    : members, [user, members, demoReady]);
 
   const inbox = useMemo(() => {
     const merged = new Map<string, Conversation>();
@@ -339,10 +441,12 @@ export default function App() {
     ...messages,
     ...legacyMessages,
     ...fourMessages,
-  ].sort((a, b) => stampValue(a.createdAt) - stampValue(b.createdAt)), [messages, legacyMessages, fourMessages]);
+    ...(active?.demo ? demoMessages[active.id] || [] : []),
+  ].sort((a, b) => stampValue(a.createdAt) - stampValue(b.createdAt)), [messages, legacyMessages, fourMessages, active?.id, active?.demo, demoMessages]);
 
   const titleOf = (conversation: Conversation) => {
     if (conversation.id === "the-four") return "The Four";
+    if (conversation.demo && conversation.title) return conversation.title;
     if (conversation.type === "group") return conversation.title || "Private group";
     if (active?.id === conversation.id && nickname.trim()) return nickname.trim();
     const otherId = conversation.memberIds.find((id) => id !== user?.uid);
@@ -360,6 +464,10 @@ export default function App() {
 
   async function setExpiry(seconds: number) {
     if (!active) return;
+    if (active.demo) {
+      setNotice("Conversation settings are preview-only in sample chats.");
+      return;
+    }
     try {
       await updateDoc(doc(db, "conversations", active.id), { disappearingAfterSeconds: seconds });
       setDisappearingAfterSeconds(seconds);
@@ -407,7 +515,7 @@ export default function App() {
   async function openConversation(conversation: Conversation) {
     if (!user) return;
     try {
-      if (conversation.type === "direct" || conversation.id === "the-four") {
+      if (!conversation.demo && (conversation.type === "direct" || conversation.id === "the-four")) {
         const ref = doc(db, "conversations", conversation.id);
         const snapshot = await getDoc(ref);
         if (!snapshot.exists()) {
@@ -469,6 +577,14 @@ export default function App() {
     event.preventDefault();
     const text = draft.trim();
     if (!text || !user || !active) return;
+    if (active.demo) {
+      const sampleReply: Message = {
+        id: "demo-user-" + Date.now(), source: "demo", uid: user.uid, text, createdAt: Date.now(),
+      };
+      setDemoMessages((current) => ({ ...current, [active.id]: [...(current[active.id] || []), sampleReply] }));
+      setDraft("");
+      return;
+    }
     setBusy(true);
     try {
       await addDoc(collection(db, "conversations", active.id, "messages"), {
@@ -562,10 +678,8 @@ export default function App() {
   const label = tab === "home" ? "Home" : tab === "chats" ? "Chats" : "Profile";
 
   return <main className="app" onTouchStart={touchStart} onTouchEnd={touchEnd}>
-    <header className="top">
+    {!active && (tab === "home" || tab === "profile") && <header className="top top-logo-only">
       <div className="brand">melo<span>.</span></div>
-      <span className="tagline">closer, even from afar.</span>
-      <button className="avatar small" onClick={() => setTab("profile")}>{initials(user?.displayName || "M")}</button>
     </header>
     {notice && <button className="noticebar" onClick={() => setNotice("")}>{notice}<b>×</b></button>}
 
@@ -705,6 +819,21 @@ export default function App() {
             <button className="chat-row pinned-chat" onClick={() => openConversation({ id: "the-four", type: "group", title: "The Four", memberIds: [user!.uid, ...members.map((member) => member.uid)] })}>
               <div className="avatar group-avatar">✳</div><div className="member-info"><strong>The Four</strong><small>All four of you · Permanent group</small></div><span className="arrow">›</span>
             </button>
+          </>}
+          {demoReady && demoConversations.length > 0 && <>
+            <div className="section-kicker demo-kicker">SAMPLE CHATS <span>LOCAL · 14 DAYS</span></div>
+            <div className="member-list demo-list">
+              {demoConversations.map((conversation) => {
+                const sampleMessages = demoMessages[conversation.id] || [];
+                const latest = sampleMessages[sampleMessages.length - 1];
+                return <button className="chat-row demo-chat-row" key={conversation.id} onClick={() => openConversation(conversation)}>
+                  <div className={"avatar " + (conversation.type === "group" ? "group-avatar" : "")}>{conversation.type === "group" ? "✳" : initials(titleOf(conversation))}</div>
+                  <div className="member-info"><strong>{titleOf(conversation)}</strong><small>{latest ? (latest.uid === user?.uid ? "You: " : "") + latest.text : "Sample conversation"}</small></div>
+                  <span className="demo-tag">DEMO</span>
+                </button>;
+              })}
+            </div>
+            <p className="demo-footnote">Only on this device. Sample chats and your test replies reset after 14 days; nothing is sent to real members.</p>
           </>}
           <div className="section-kicker recent-kicker">RECENT CONVERSATIONS</div>
           <div className="member-list">
