@@ -56,7 +56,7 @@ export default function App(){
 
  const ordered=members.slice().sort((a,b)=>nameOf(a).localeCompare(nameOf(b)));
  const touchStart=(e:TouchEvent)=>{if(active)return;setSwipeX(e.touches[0].clientX);setSwipeY(e.touches[0].clientY);};
- const touchEnd=(e:React.TouchEvent)=>{if(swipeX===null||swipeY===null||active)return;const dx=e.changedTouches[0].clientX-swipeX,dy=e.changedTouches[0].clientY-swipeY;setSwipeX(null);setSwipeY(null);if(Math.abs(dx)>85&&Math.abs(dx)>Math.abs(dy)*1.4){const i=tabs.findIndex(t=>t.id===tab),n=Math.max(0,Math.min(tabs.length-1,i+(dx<0?1:-1)));setTab(tabs[n].id);}};
+ const touchEnd=(e:TouchEvent)=>{if(swipeX===null||swipeY===null||active)return;const dx=e.changedTouches[0].clientX-swipeX,dy=e.changedTouches[0].clientY-swipeY;setSwipeX(null);setSwipeY(null);if(Math.abs(dx)>85&&Math.abs(dx)>Math.abs(dy)*1.4){const i=tabs.findIndex(t=>t.id===tab),n=Math.max(0,Math.min(tabs.length-1,i+(dx<0?1:-1)));setTab(tabs[n].id);}};
  const label=tab==="home"?"Your circle":tab==="explore"?"People":tab==="chats"?"Messages":tab==="activity"?"Activity":"Profile";
  return <main className="app" onTouchStart={touchStart} onTouchEnd={touchEnd}>
   <header className="top"><div className="brand">melo<span>.</span></div><span className="tagline">closer, even from afar.</span><button className="avatar small" onClick={()=>setTab("profile")}>{initials(user?.displayName||"M")}</button></header>
