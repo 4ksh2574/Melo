@@ -235,7 +235,7 @@ function nav(page){
 document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>nav(b.dataset.page));
 $("seeAll").onclick=()=>nav("explorePage");
 window.addEventListener("resize",syncNavIndicator,{passive:true});
-let swipeStartX=0,swipeStartY=0,swipeStartAt=0,swipePointer=null,swipeOriginPage=null,ignoreSwipeClickUntil=0;
+let swipeStartX=0,swipeStartY=0,swipeStartAt=0,swipePointer=null,swipeOriginPage=null,swipeStartButton=null,ignoreSwipeClickUntil=0;
 const swipeArea=$("appScreen");
 swipeArea.style.touchAction="pan-y";
 swipeArea.addEventListener("pointerdown",e=>{
@@ -244,7 +244,7 @@ swipeArea.addEventListener("pointerdown",e=>{
  if(!page||page.id!==currentPage||!$("chatPage").classList.contains("hidden")){swipePointer=null;return}
  // Allow swipes to begin on conversation rows/buttons; exclude form controls and nested scroll surfaces.
  if(e.target.closest("input,textarea,select,a,[contenteditable='true'],.nav,.chatbox,.xchat-search,.xchat-filter-wrap")){swipePointer=null;return}
- swipePointer=e.pointerId;swipeOriginPage=page.id;swipeStartX=e.clientX;swipeStartY=e.clientY;swipeStartAt=e.timeStamp;
+ swipePointer=e.pointerId;swipeOriginPage=page.id;swipeStartButton=e.target.closest("button");swipeStartX=e.clientX;swipeStartY=e.clientY;swipeStartAt=e.timeStamp;
 },{passive:true});
 swipeArea.addEventListener("pointerup",e=>{
  if(swipePointer!==e.pointerId)return;
@@ -253,13 +253,13 @@ swipeArea.addEventListener("pointerup",e=>{
  if(origin!==currentPage||!$("chatPage").classList.contains("hidden"))return;
  if(Math.abs(dx)<68||Math.abs(dx)<Math.abs(dy)*1.35||elapsed>900)return;
  const i=pageOrder.indexOf(currentPage),next=i+(dx<0?1:-1);
- if(next>=0&&next<pageOrder.length){ignoreSwipeClickUntil=Date.now()+450;nav(pageOrder[next]);}
+ if(next>=0&&next<pageOrder.length){ignoreSwipeClickUntil=Date.now()+350;nav(pageOrder[next]);}
 },{passive:true});
 document.addEventListener("click",e=>{
- if(Date.now()>ignoreSwipeClickUntil)return;
- e.preventDefault();e.stopPropagation();
+ if(!swipeStartButton||Date.now()>ignoreSwipeClickUntil)return;
+ if(e.target===swipeStartButton||swipeStartButton.contains(e.target)){e.preventDefault();e.stopPropagation();swipeStartButton=null;}
 },true);
-const cancelSwipe=()=>{swipePointer=null;swipeOriginPage=null};
+const cancelSwipe=()=>{swipePointer=null;swipeOriginPage=null;swipeStartButton=null};
 swipeArea.addEventListener("pointercancel",cancelSwipe,{passive:true});
 swipeArea.addEventListener("lostpointercapture",cancelSwipe,{passive:true});
 async function loadSocial(user){
