@@ -16,7 +16,9 @@ service cloud.firestore {
     }
 
     match /members/{uid} {
-      allow get: if approved() && (uid == request.auth.uid || approvedUid(uid));
+      // A signed-in user must be able to read their own approval record
+      // before approved() can succeed. Other member records remain gated.
+      allow get: if signedIn() && (uid == request.auth.uid || (approved() && approvedUid(uid)));
       allow list: if approved();
       allow create, update, delete: if false;
     }
