@@ -9,10 +9,13 @@ import {
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   serverTimestamp,
   setDoc,
+  Timestamp,
+  updateDoc,
 } from "firebase/firestore";
 
 const projectId = "demo-melo-rules";
@@ -176,6 +179,78 @@ test("messages enforce sender identity and non-empty 4,000-character limit", asy
     uid: "u1",
     text: "x".repeat(4001),
     createdAt: serverTimestamp(),
+  }));
+});
+
+
+test("conversation members can update only supported disappearing-message durations", async () => {
+  const data = userDb("u1");
+  await assertSucceeds(setDoc(doc(data, "conversations/u1__u2"), {
+    type: "direct",
+    memberIds: ["u1", "u2"],
+    createdBy: "u1",
+    createdAt: serverTimestamp(),
+  }));
+  await assertSucceeds(updateDoc(doc(data, "conversations/u1__u2"), {
+    disappearingAfterSeconds: 3600,
+  }));
+  await assertFails(updateDoc(doc(data, "conversations/u1__u2"), {
+    disappearingAfterSeconds: 123,
+  }));
+  await assertFails(updateDoc(doc(data, "conversations/u1__u2"), {
+    title: "Changed title",
+  }));
+  await assertFails(updateDoc(doc(userDb("u3"), "conversations/u1__u2"), {
+    disappearingAfterSeconds: 300,
+  }));
+});
+
+test("only expired messages can be cleaned up by conversation members", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const database = context.firestore();
+    await setDoc(doc(database, "conversations/u1__u2"), {
+      type: "direct",
+      memberIds: ["u1", "u2"],
+      createdBy: "u1",
+      createdAt: new Date(),
+    });
+    await setDoc(doc(database, "conversations/u1__u2/messages/expired"), {
+      uid: "u2",
+      text: "Expired",
+      createdAt: new Date(),
+      expiresAt: Timestamp.fromMillis(Date.now() - 60_000),
+    });
+    await setDoc(doc(database, "conversations/u1__u2/messages/not-expired"), {
+      uid: "u2",
+      text: "Still active",
+      createdAt: new Date(),
+      expiresAt: Timestamp.fromMillis(Date.now() + 60_000),
+    });
+  });
+  await assertSucceeds(deleteDoc(doc(userDb("u1"), "conversations/u1__u2/messages/expired")));
+  await assertFails(deleteDoc(doc(userDb("u1"), "conversations/u1__u2/messages/not-expired")));
+  await assertFails(deleteDoc(doc(userDb("u3"), "conversations/u1__u2/messages/not-expired")));
+});
+
+test("new messages may carry a valid future expiry timestamp", async () => {
+  const data = userDb("u1");
+  await assertSucceeds(setDoc(doc(data, "conversations/u1__u2"), {
+    type: "direct",
+    memberIds: ["u1", "u2"],
+    createdBy: "u1",
+    createdAt: serverTimestamp(),
+  }));
+  await assertSucceeds(addDoc(collection(data, "conversations/u1__u2/messages"), {
+    uid: "u1",
+    text: "This will expire",
+    createdAt: serverTimestamp(),
+    expiresAt: Timestamp.fromMillis(Date.now() + 60_000),
+  }));
+  await assertFails(addDoc(collection(data, "conversations/u1__u2/messages"), {
+    uid: "u1",
+    text: "Already expired",
+    createdAt: serverTimestamp(),
+    expiresAt: Timestamp.fromMillis(Date.now() - 60_000),
   }));
 });
 
