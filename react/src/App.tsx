@@ -102,7 +102,6 @@ export default function App() {
   const [legacyMessages, setLegacyMessages] = useState<Message[]>([]);
   const [fourMessages, setFourMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
-  const [search, setSearch] = useState("");
   const [swipeX, setSwipeX] = useState<number | null>(null);
   const [swipeY, setSwipeY] = useState<number | null>(null);
   const [groupPanel, setGroupPanel] = useState(false);
@@ -327,11 +326,6 @@ export default function App() {
   const allMembers = useMemo(() => user
     ? [{ uid: user.uid, displayName: user.displayName || user.email || "You" }, ...members]
     : members, [user, members]);
-
-  const filteredMembers = useMemo(() => members.filter((member) =>
-    nameOf(member).toLowerCase().includes(search.toLowerCase())
-    || (member.username || "").toLowerCase().includes(search.toLowerCase())),
-  [members, search]);
 
   const inbox = useMemo(() => {
     const merged = new Map<string, Conversation>();
@@ -565,10 +559,7 @@ export default function App() {
       setTab(tabs[next].id);
     }
   };
-  const label = tab === "home" ? "Your circle"
-    : tab === "explore" ? "People"
-      : tab === "chats" ? "Messages"
-        : tab === "activity" ? "Activity" : "Profile";
+  const label = tab === "home" ? "Home" : tab === "chats" ? "Chats" : "Profile";
 
   return <main className="app" onTouchStart={touchStart} onTouchEnd={touchEnd}>
     <header className="top">
