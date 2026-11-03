@@ -175,7 +175,7 @@ function renderPeople(){
  $("followingCount").textContent=following.size+(demoFollowing?1:0);
 }
 document.addEventListener("click",async e=>{
- const f=e.target.closest("[data-follow]");if(f){const target=f.dataset.follow;if(!me||!target)return;f.disabled=true;if(target===demoMember.uid){demoFollowing=!demoFollowing;renderPeople();f.disabled=false;return}const id=me.uid+"_"+target;try{if(following.has(target)){await deleteDoc(doc(db,"follows",id))}else{await setDoc(doc(db,"follows",id),{followerUid:me.uid,followedUid:target,createdAt:serverTimestamp()})}}catch(x){alert("Follow action failed. Check Firestore rules.");console.error(x)}finally{f.disabled=false}return}
+ const f=e.target.closest("[data-follow]");if(f){const target=f.dataset.follow;if(!me||!target)return;f.disabled=true;const id=me.uid+"_"+target;try{if(following.has(target)){await deleteDoc(doc(db,"follows",id))}else{await setDoc(doc(db,"follows",id),{followerUid:me.uid,followedUid:target,createdAt:serverTimestamp()})}}catch(x){alert("Follow action failed. Check Firestore rules.");console.error(x)}finally{f.disabled=false}return}
  const d=e.target.closest("[data-dm]");if(d){const target=members.find(m=>m.uid===d.dataset.dm);if(target)openChat(target);return}
  const p=e.target.closest("[data-profile]");if(p){nav("explorePage")}
 });
