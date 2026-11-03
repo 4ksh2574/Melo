@@ -683,7 +683,8 @@ export default function App() {
         </>}
 
         {tab === "chats" && <>
-          <div className="chat-actions"><div><small>YOUR PRIVATE CONVERSATIONS</small><h2>Stay in the loop.</h2></div>
+          <div className="chat-toolbar">
+            <div className="chat-toolbar-copy"><small>PRIVATE INBOX</small><span>{inbox.filter((item) => item.id !== "the-four").length + (fourReady ? 1 : 0)} conversations</span></div>
             <button className="primary compact" onClick={() => setGroupPanel((open) => !open)}>＋ New group</button>
           </div>
           {groupPanel && <form className="group-panel" onSubmit={createGroup}>
@@ -699,11 +700,13 @@ export default function App() {
             <div className="group-panel-buttons"><button type="button" className="secondary" onClick={() => setGroupPanel(false)}>Cancel</button>
               <button type="submit" className="primary" disabled={busy || selectedMembers.length < 1 || selectedMembers.length > 3}>Create group</button></div>
           </form>}
-          <div className="section-title">Pinned circle</div>
-          {fourReady ? <button className="chat-row" onClick={() => openConversation({ id: "the-four", type: "group", title: "The Four", memberIds: [user!.uid, ...members.map((member) => member.uid)] })}>
-            <div className="avatar group-avatar">✳</div><div className="member-info"><strong>The Four</strong><small>All four of you · Permanent group</small></div><span className="arrow">›</span>
-          </button> : <p className="footnote">The Four will appear when exactly four approved members are available.</p>}
-          <div className="section-title">Your conversations <span>{inbox.filter((item) => item.id !== "the-four").length}</span></div>
+          {fourReady && <>
+            <div className="section-kicker">PINNED</div>
+            <button className="chat-row pinned-chat" onClick={() => openConversation({ id: "the-four", type: "group", title: "The Four", memberIds: [user!.uid, ...members.map((member) => member.uid)] })}>
+              <div className="avatar group-avatar">✳</div><div className="member-info"><strong>The Four</strong><small>All four of you · Permanent group</small></div><span className="arrow">›</span>
+            </button>
+          </>}
+          <div className="section-kicker recent-kicker">RECENT CONVERSATIONS</div>
           <div className="member-list">
             {inbox.filter((item) => item.id !== "the-four").map((conversation) => <button className="chat-row" key={conversation.id} onClick={() => openConversation(conversation)}>
               <div className="avatar">{conversation.type === "group" ? "✳" : initials(titleOf(conversation))}</div>
@@ -712,7 +715,6 @@ export default function App() {
             </button>)}
             {!inbox.some((item) => item.id !== "the-four") && <p className="empty">Your private chats and groups will appear here.</p>}
           </div>
-          <p className="footnote">Only approved Melo members can open these conversations.</p>
         </>}
 
         {tab === "profile" && <div className="profile-card">
