@@ -752,6 +752,26 @@ export default function App() {
           <div className="avatar large">{initials(user?.displayName || "M")}</div>
           <h2>{user?.displayName || "Melo member"}</h2><p>{user?.email}</p>
           <span className="member-badge">✓ Approved member</span>
+          <section className="settings-card" aria-labelledby="appearance-title">
+            <div className="settings-heading">
+              <div><small>PERSONALIZE MELO</small><h3 id="appearance-title">Appearance</h3></div>
+              <span className="settings-symbol" aria-hidden="true">◐</span>
+            </div>
+            <p>Choose how Melo looks across every screen, including your conversations.</p>
+            <div className="theme-options" role="group" aria-label="Theme preference">
+              {(["light", "dark", "system"] as ThemePreference[]).map((choice) =>
+                <button key={choice} type="button"
+                  className={"theme-option " + (themePreference === choice ? "selected" : "")}
+                  aria-pressed={themePreference === choice}
+                  onClick={() => setThemePreference(choice)}>
+                  <span className={"theme-preview " + choice} aria-hidden="true"><i /><i /><i /></span>
+                  <span>{choice[0].toUpperCase() + choice.slice(1)}</span>
+                  {themePreference === choice && <b aria-hidden="true">✓</b>}
+                </button>
+              )}
+            </div>
+            <small className="settings-note">{themePreference === "system" ? "Follows your device appearance automatically." : "Your choice is saved on this device."}</small>
+          </section>
           <button className="secondary" onClick={() => signOut(auth)}>Sign out</button>
         </div>}
       </section>
