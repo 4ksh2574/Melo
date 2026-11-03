@@ -40,6 +40,10 @@ No bulk copy is required for this release. A later cleanup should happen only af
 5. Verify that old direct messages and old The Four messages still appear.
 6. Only after those checks should the migration pull request be merged and GitHub Pages switched to the React build.
 
+## Automated tests
+
+The repository includes Firestore Emulator tests in `tests/firestore.rules.test.mjs`. Run them with `npm run test:rules` (requires Node.js 24 and Java 21 for the current test toolchain). The GitHub Actions migration workflow runs the production build and the emulator test suite on branch pushes and pull requests.
+
 ## Test matrix
 
 | Case | Expected result |
