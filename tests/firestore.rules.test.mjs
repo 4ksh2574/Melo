@@ -51,6 +51,8 @@ after(async () => {
 
 test("approved members can open a direct chat without following", async () => {
   const database = userDb("u1");
+  // The app checks a deterministic ID before creating its conversation document.
+  await assertSucceeds(getDoc(doc(database, "conversations/u1__u2")));
   await assertSucceeds(setDoc(doc(database, "conversations/u1__u2"), {
     type: "direct",
     memberIds: ["u1", "u2"],
@@ -119,6 +121,8 @@ test("groups reject duplicates, unapproved users, and a creator outside the grou
 
 test("The Four requires its fixed ID, title, permanent flag, and four approved members", async () => {
   const database = userDb("u1");
+  // The permanent group is also checked before first-time initialization.
+  await assertSucceeds(getDoc(doc(database, "conversations/the-four")));
   await assertSucceeds(setDoc(doc(database, "conversations/the-four"), {
     type: "group",
     title: "The Four",
