@@ -86,6 +86,7 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<Tab>("home");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
     const saved = window.localStorage.getItem("melo-theme");
     return saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
@@ -684,20 +685,12 @@ export default function App() {
         </div>
 
         {tab === "home" && <>
-          <div className="welcome"><span className="pulse" /> YOUR PRIVATE FOUR
-            <h2>A little closer,<br />every day.</h2>
-            <p>Your space for conversations, small updates and everything in between.</p>
-          </div>
-          <div className="section-title">Your circle <span>{members.length + 1} members</span></div>
+          <div className="section-title home-circle-title">Your circle <span>{members.length + 1} members</span></div>
           <div className="people-strip">
             <div className="person"><div className="avatar own">{initials(user?.displayName || "M")}</div><small>You</small></div>
             {ordered.map((member) => <button className="person" key={member.uid} onClick={() => openDirect(member)}>
               <div className="avatar">{initials(nameOf(member))}</div><small>{nameOf(member).split(" ")[0]}</small>
             </button>)}
-          </div>
-          <div className="feature-card"><div><small>STAY CONNECTED</small><h3>Pick up where you left off.</h3>
-            <p>Start a private chat or bring a few friends into a group.</p></div>
-            <button onClick={() => setTab("chats")}>Open chats ↗</button>
           </div>
         </>}
 
@@ -749,30 +742,42 @@ export default function App() {
         </div>}
 
         {tab === "profile" && <div className="profile-card">
-          <div className="avatar large">{initials(user?.displayName || "M")}</div>
-          <h2>{user?.displayName || "Melo member"}</h2><p>{user?.email}</p>
-          <span className="member-badge">✓ Approved member</span>
-          <section className="settings-card" aria-labelledby="appearance-title">
-            <div className="settings-heading">
-              <div><small>PERSONALIZE MELO</small><h3 id="appearance-title">Appearance</h3></div>
-              <span className="settings-symbol" aria-hidden="true">◐</span>
+          {!settingsOpen ? <>
+            <div className="profile-topline">
+              <span className="profile-label">YOUR PROFILE</span>
+              <button className="profile-settings-button" type="button" aria-label="Open settings" onClick={() => setSettingsOpen(true)}>⚙</button>
             </div>
-            <p>Choose how Melo looks across every screen, including your conversations.</p>
-            <div className="theme-options" role="group" aria-label="Theme preference">
-              {(["light", "dark", "system"] as ThemePreference[]).map((choice) =>
-                <button key={choice} type="button"
-                  className={"theme-option " + (themePreference === choice ? "selected" : "")}
-                  aria-pressed={themePreference === choice}
-                  onClick={() => setThemePreference(choice)}>
-                  <span className={"theme-preview " + choice} aria-hidden="true"><i /><i /><i /></span>
-                  <span>{choice[0].toUpperCase() + choice.slice(1)}</span>
-                  {themePreference === choice && <b aria-hidden="true">✓</b>}
-                </button>
-              )}
+            <div className="avatar large">{initials(user?.displayName || "M")}</div>
+            <h2>{user?.displayName || "Melo member"}</h2><p>{user?.email}</p>
+            <span className="member-badge">✓ Approved member</span>
+            <button className="secondary" onClick={() => signOut(auth)}>Sign out</button>
+          </> : <>
+            <div className="profile-settings-head">
+              <button className="settings-back" type="button" onClick={() => setSettingsOpen(false)} aria-label="Back to profile">‹</button>
+              <div><small>PERSONALIZE MELO</small><h2>Settings</h2></div>
             </div>
-            <small className="settings-note">{themePreference === "system" ? "Follows your device appearance automatically." : "Your choice is saved on this device."}</small>
-          </section>
-          <button className="secondary" onClick={() => signOut(auth)}>Sign out</button>
+            <section className="settings-card" aria-labelledby="appearance-title">
+              <div className="settings-heading">
+                <div><small>DISPLAY</small><h3 id="appearance-title">Appearance</h3></div>
+                <span className="settings-symbol" aria-hidden="true">◐</span>
+              </div>
+              <p>Choose how Melo looks across every screen, including your conversations.</p>
+              <div className="theme-options" role="group" aria-label="Theme preference">
+                {(["light", "dark", "system"] as ThemePreference[]).map((choice) =>
+                  <button key={choice} type="button"
+                    className={"theme-option " + (themePreference === choice ? "selected" : "")}
+                    aria-pressed={themePreference === choice}
+                    onClick={() => setThemePreference(choice)}>
+                    <span className={"theme-preview " + choice} aria-hidden="true"><i /><i /><i /></span>
+                    <span>{choice[0].toUpperCase() + choice.slice(1)}</span>
+                    {themePreference === choice && <b aria-hidden="true">✓</b>}
+                  </button>
+                )}
+              </div>
+              <small className="settings-note">{themePreference === "system" ? "Follows your device appearance automatically." : "Your choice is saved on this device."}</small>
+            </section>
+            <button className="secondary" onClick={() => signOut(auth)}>Sign out</button>
+          </>}
         </div>}
       </section>
       <nav className="dock"><div className="dock-inner">
