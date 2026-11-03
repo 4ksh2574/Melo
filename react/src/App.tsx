@@ -70,7 +70,10 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
 const chatId = (a: string, b: string) => [a, b].sort().join("__");
 const nameOf = (m?: Member) => m?.displayName || m?.username || "Melo member";
 const initials = (s: string) => (s.trim()[0] || "M").toUpperCase();
-const stampValue = (stamp?: Stamp) => typeof stamp === "number" ? stamp : stamp?.toMillis?.() ?? 0;
+const stampValue = (stamp?: Stamp) => {
+  if (typeof stamp === "number") return stamp;
+  return stamp?.toMillis?.() ?? 0;
+};
 const DEMO_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 const demoMembers: Member[] = [
   { uid: "demo-ava", displayName: "Ava Morgan" },
@@ -689,7 +692,7 @@ export default function App() {
           <button className="back" onClick={() => setActive(null)} aria-label="Back to chats">‹</button>
           <button className="chat-person-trigger" onClick={() => setChatPanel("details")} aria-label="Conversation details">
             <span className="avatar">{active.type === "group" ? "✳" : initials(titleOf(active))}</span>
-            <span className="conversation-title"><strong>{titleOf(active)}</strong><small>{active.type === "group" ? active.memberIds.length + " members · Private group" : "Private conversation"}</small></span>
+            <span className="conversation-title"><strong>{titleOf(active)}</strong><small>{active.demo ? "Sample · This device only" : active.type === "group" ? active.memberIds.length + " members · Private group" : "Private conversation"}</small></span>
           </button>
           <button className="chat-more" onClick={() => setChatPanel("details")} aria-label="More conversation options">···</button>
         </header>
