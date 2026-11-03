@@ -174,10 +174,15 @@ export default function App() {
       where("memberIds", "array-contains", user.uid),
     );
     const unsubscribeConversations = onSnapshot(conversationsQuery, (snapshot) => {
-      setConversations(snapshot.docs.map((item) => ({
+      const refreshed = snapshot.docs.map((item) => ({
         id: item.id,
         ...item.data(),
-      } as Conversation)));
+      } as Conversation));
+      setConversations(refreshed);
+      setActive((current) => {
+        const latest = current && refreshed.find((item) => item.id === current.id);
+        return current && latest ? { ...current, ...latest } : current;
+      });
     }, (error) => {
       console.error(error);
       setNotice("Couldn't load your conversations.");
@@ -236,7 +241,7 @@ export default function App() {
     }
     setNickname(window.localStorage.getItem("melo-nickname:" + user.uid + ":" + active.id) || "");
     setDisappearingAfterSeconds(active.disappearingAfterSeconds || 0);
-  }, [active?.id, user?.uid]);
+  }, [active?.id, active?.disappearingAfterSeconds, user?.uid]);
 
   useEffect(() => {
     if (!user || !active) {
