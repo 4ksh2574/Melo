@@ -98,7 +98,13 @@ service cloud.firestore {
     // New conversation model. Direct-message IDs are deterministic; group IDs are random.
     // A conversation is visible only to its approved members.
     match /conversations/{conversationId} {
-      allow get, list: if approved() && request.auth.uid in resource.data.memberIds;
+      // Allow approved members to check whether a deterministic conversation ID exists.
+      // Existing conversation data is still visible only to its listed members.
+      allow get: if approved() && (
+        !exists(/databases/$(database)/documents/conversations/$(conversationId))
+        || request.auth.uid in resource.data.memberIds
+      );
+      allow list: if approved() && request.auth.uid in resource.data.memberIds;
       allow create: if validConversationCreate(conversationId);
       allow update, delete: if false;
 
