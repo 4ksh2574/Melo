@@ -683,7 +683,7 @@ export default function App() {
   return <main className="app" onTouchStart={touchStart} onTouchEnd={touchEnd}>
     {!active && (tab === "home" || tab === "profile") && <header className="top top-logo-only">
       <div className="brand">melo<span>.</span></div>
-    </header>
+    </header>}
     {notice && <button className="noticebar" onClick={() => setNotice("")}>{notice}<b>×</b></button>}
 
     {active ? <section className="conversation">
