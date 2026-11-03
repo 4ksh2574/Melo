@@ -153,6 +153,19 @@ body:has(#inboxPage:not(.hidden)) header.appbar .brand span{color:#159b8c!import
 #appScreen:has(#chatPage:not(.hidden)) .nav{display:none!important}
 @media(prefers-reduced-motion:reduce){#appScreen .navinner,#appScreen .nav button.active{animation:none!important}#appScreen .nav button{transition:none!important}}
 /* Refined chats */.inbox-intro{display:flex;align-items:center;justify-content:space-between;margin:2px 0 18px}.inbox-intro p{margin:0;color:#737b78;font-size:12px}.inbox-label{margin:20px 0 8px;color:#9aa39f;font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}.chatlist{display:grid;gap:2px}.chatrow{width:100%;display:flex;align-items:center;gap:12px;padding:13px 9px;border:0;border-bottom:1px solid #f0f2f1;background:#fff;text-align:left;color:inherit;border-radius:13px}.chatrow:hover{background:#f7fbf9}.chatrow .avatar{width:49px;height:49px}.chatrow .demo-avatar{background:linear-gradient(145deg,#e8f4ff,#dce9fb);color:#5275a4}.chatrow-main{flex:1;min-width:0}.chatrow-top{display:flex;align-items:center;gap:8px}.chatrow-top strong{font-size:13px}.chatrow-preview{display:block;margin-top:5px;color:#87918d;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.demo-tag{display:inline-flex;padding:3px 6px;border-radius:5px;background:#f0f4fa;color:#6980a3;font-size:8px;font-weight:800;letter-spacing:.06em}.chat-topline{display:flex;align-items:center;gap:9px;min-width:0}.chat-topline h1{font:700 19px Arial,sans-serif;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chatback{width:38px;height:38px;display:grid;place-items:center;border:1px solid #edf0ee;border-radius:12px;background:#fff;color:#35413c}.chatbox{height:calc(100dvh - 190px);min-height:420px;max-height:760px;border:1px solid #e9eeeb;border-radius:18px;background:#fbfdfc;box-shadow:0 8px 28px #1a332b08}.chathead{background:#fff;padding:13px 15px;min-height:68px}.chathead-meta{min-width:0;flex:1}.chathead-meta strong{display:block;font-size:13px}.chathead-meta small{display:block;margin-top:3px;color:#87918d;font-size:10px}.chat-demo-note{padding:5px 7px;border-radius:6px;background:#f0f4fa;color:#6f83a5;font-size:9px;font-weight:800}.chatmessages{background:linear-gradient(180deg,#fbfdfc,#f8fbf9);gap:9px;padding:15px 12px}.bubble{max-width:min(82%,420px);padding:10px 13px;line-height:1.45;box-shadow:0 1px 2px #1a332b08}.bubble.mine{background:#dff5ef;color:#214b42;border-bottom-right-radius:5px}.bubble:not(.mine){border-bottom-left-radius:5px}.chatcompose{padding:10px 12px calc(10px + env(safe-area-inset-bottom));gap:9px;background:#fff}.chatcompose input{height:43px;background:#f7f9f8;border-color:#edf0ee;font-size:13px}.chatcompose button{width:43px;height:43px;flex:none;display:grid;place-items:center;box-shadow:0 4px 12px #159b8c30}.chat-state{padding:8px 12px;text-align:center;font-size:10px;color:#929c97;background:#fff;border-top:1px solid #f1f3f2}@media(max-width:800px){.page#inboxPage{margin-top:12px;padding:0 14px}#chatPage{padding:0 10px;margin-top:10px}#chatPage .pagehead{margin-bottom:12px}.chatbox{height:calc(100dvh - 174px);max-height:none}.chatmessages{padding:14px 11px}}
+/* Universal nav glass pill with a spring-loaded moving indicator */
+#appScreen .nav{position:fixed!important;left:0!important;right:0!important;bottom:calc(12px + env(safe-area-inset-bottom))!important;display:flex!important;justify-content:center!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;pointer-events:none!important;z-index:1000!important}
+#appScreen .navinner{position:relative!important;width:auto!important;min-width:270px!important;max-width:calc(100% - 34px)!important;display:flex!important;justify-content:space-around!important;align-items:center!important;gap:4px!important;padding:7px 9px!important;background:linear-gradient(135deg,rgba(255,255,255,.19),rgba(255,255,255,.055))!important;border:1px solid rgba(255,255,255,.24)!important;border-radius:999px!important;backdrop-filter:blur(30px) saturate(1.8)!important;-webkit-backdrop-filter:blur(30px) saturate(1.8)!important;box-shadow:0 12px 36px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.24),inset 0 -1px 0 rgba(255,255,255,.06)!important;overflow:visible!important;pointer-events:auto!important;animation:navFloatIn .6s cubic-bezier(.18,1.25,.35,1) both!important}
+#appScreen .nav-indicator{position:absolute;z-index:0;left:0;top:6px;border-radius:999px;pointer-events:none;background:linear-gradient(145deg,rgba(21,155,140,.27),rgba(8,127,115,.13));border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 2px 12px rgba(21,155,140,.12);transition:transform 760ms cubic-bezier(.2,1.45,.35,1),width 280ms cubic-bezier(.2,.8,.2,1),height 280ms ease}
+#appScreen .nav button{position:relative;z-index:1;flex:1;min-width:46px!important;min-height:44px!important;padding:9px 12px!important;display:grid;place-items:center;border:0!important;border-radius:50%!important;background:transparent!important;box-shadow:none!important;color:rgba(255,255,255,.72)!important;transition:color .2s ease,transform .32s cubic-bezier(.2,1.45,.35,1)!important}
+#appScreen .nav button.active{color:#fff!important;background:transparent!important;box-shadow:none!important;animation:navIconInertia .58s cubic-bezier(.2,1.55,.4,1) both!important}
+#appScreen .nav button:active{transform:scale(.84)!important}
+#appScreen .nav button svg{stroke:currentColor!important;fill:none!important}
+@keyframes navIconInertia{0%{transform:scale(.78)}42%{transform:scale(1.2)}68%{transform:scale(.94)}86%{transform:scale(1.035)}100%{transform:scale(1)}}
+@keyframes navFloatIn{from{opacity:0;transform:translateY(22px) scale(.92)}65%{opacity:1;transform:translateY(-3px) scale(1.015)}to{opacity:1;transform:translateY(0) scale(1)}}
+#appScreen:has(#chatPage:not(.hidden)) .nav{display:none!important}
+@media(max-width:800px){#appScreen .navinner{min-width:270px!important;max-width:calc(100% - 34px)!important}#appScreen .nav button{padding:9px 11px!important}}
+@media(prefers-reduced-motion:reduce){#appScreen .navinner,#appScreen .nav button.active{animation:none!important}#appScreen .nav-indicator{transition:none!important}#appScreen .nav button{transition:none!important}}
 </style></head><body>
 <section class="startup" id="startupScreen"><div><div class="startupmark">melo<span>.</span></div><div class="muted" style="font-size:11px;margin-top:5px">closer, even from afar.</div><div class="startupspinner"></div></div></section>
 <section class="auth hidden" id="authScreen"><div class="authcard"><div class="brand">melo<span>.</span></div><div class="muted" style="font-size:11px">closer, even from afar.</div><h1>Your circle, your space.</h1><p>Sign in to your private social space. Only four approved members can join.</p><form id="loginForm"><label class="field"><span>Email address</span><input id="email" type="email" autocomplete="username" required placeholder="you@example.com"></label><label class="field"><span>Password</span><input id="password" type="password" autocomplete="current-password" required placeholder="Your password"></label><button class="btn primary wide">Sign in with email</button></form><button class="btn secondary wide" id="resetBtn">Forgot password?</button><div style="text-align:center;color:#9aa49f;font-size:10px;margin:16px">OR</div><button class="btn wide" style="background:white;border:1px solid var(--line)" id="googleBtn">◎ &nbsp; Continue with Google</button><div class="authstatus" id="authStatus"></div><div class="muted" style="font-size:10px;text-align:center;margin-top:18px">Private by design · Four members only</div></div></section>
@@ -170,10 +183,11 @@ body:has(#inboxPage:not(.hidden)) header.appbar .brand span{color:#159b8c!import
  <div class="xchat-suggest-title">Suggested</div><div class="xchat-suggest-copy">Your private circle on Melo</div><div id="chatSuggestions" class="xchat-suggestions"></div>
  <button class="xchat-compose" id="newChatButton" aria-label="Start a chat"><i data-lucide="message-circle-plus"></i></button>
 </section>
+<section id="notificationsPage" class="page pageview hidden"><div class="pagehead"><h1>Notifications</h1></div><div class="empty" style="margin-top:18px">Your circle's updates will appear here.<br>You'll see new messages, reactions and comments here as those features are added.</div></section>
 <section id="profilePage" class="page pageview hidden"><div class="pagehead"><h1>Profile</h1><button class="btn secondary" id="signOut">Sign out</button></div><div class="profiletop"><div class="avatar" id="profileAvatar">M</div><div><h2 id="profileName">Member</h2><div class="stats"><span><b id="followingCount">0</b> following</span><span><b id="followerCount">0</b> followers</span></div><div class="muted" id="profileEmail" style="font-size:10px;margin-top:6px"></div></div></div><div class="empty" style="margin-top:20px">Your profile space. More profile customisation is coming soon.</div></section>
 <section id="chatPage" class="page hidden"><div class="pagehead"><div class="chat-topline"><button class="chatback" id="backToInbox" aria-label="Back to messages"><i data-lucide="arrow-left"></i></button><h1 id="chatTitle">Chat</h1></div><span class="muted" style="font-size:10px">Melo</span></div><div class="chatbox"><div class="chathead"><div class="avatar" id="chatAvatar">M</div><div class="chathead-meta"><strong id="chatName"></strong><small id="chatSubtitle">Private conversation</small></div><span id="chatDemoTag" class="chat-demo-note hidden">DEMO</span></div><div class="chatmessages" id="chatMessages" aria-live="polite"><div class="empty">Say hello ✨</div></div><div class="chat-state" id="chatState">Messages are private to this conversation.</div><form class="chatcompose" id="dmForm"><input id="dmInput" maxlength="4000" placeholder="Write a message…" autocomplete="off" required><button type="submit" aria-label="Send message"><i data-lucide="send"></i></button></form></div></section>
 
-<nav class="nav"><div class="navinner"><button data-page="homePage" class="active" aria-label="Home"><i data-lucide="house"></i></button><button data-page="explorePage" aria-label="Explore"><i data-lucide="search"></i></button><button data-page="inboxPage" aria-label="Messages"><i data-lucide="message-circle"></i></button><button data-page="profilePage" aria-label="Profile"><i data-lucide="user-round"></i></button></div></nav>
+<nav class="nav"><div class="navinner"><span class="nav-indicator" aria-hidden="true"></span><button data-page="homePage" class="active" aria-label="Home"><i data-lucide="house"></i></button><button data-page="explorePage" aria-label="Explore"><i data-lucide="search"></i></button><button data-page="inboxPage" aria-label="Messages"><i data-lucide="message-circle"></i></button><button data-page="notificationsPage" aria-label="Notifications"><i data-lucide="bell"></i></button><button data-page="profilePage" aria-label="Profile"><i data-lucide="user-round"></i></button></div></nav>
 </div>
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
@@ -197,14 +211,55 @@ $("resetBtn").onclick=async()=>{let email=$("email").value.trim();if(!email){set
 function profileName(m){return m.displayName||m.username||m.email?.split("@")[0]||"Melo member"}
 function avatarHTML(m){return '<div class="avatar">'+clean(profileName(m).charAt(0).toUpperCase())+'</div>'}
 function stopAll(){stopFns.forEach(f=>f());stopFns=[];if(stopDm){stopDm();stopDm=null}}
-const pageOrder=["homePage","explorePage","inboxPage","profilePage"];let currentPage="homePage";
-function nav(page){if(!pageOrder.includes(page))return;const oldIndex=pageOrder.indexOf(currentPage),newIndex=pageOrder.indexOf(page);$("chatPage").classList.add("hidden");document.querySelectorAll(".pageview").forEach(p=>{const active=p.id===page;p.classList.toggle("hidden",!active);p.classList.remove("page-slide-next","page-slide-prev");if(active&&page!==currentPage){void p.offsetWidth;p.classList.add(newIndex>oldIndex?"page-slide-next":"page-slide-prev")}});document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));currentPage=page}
+const pageOrder=["homePage","explorePage","inboxPage","notificationsPage","profilePage"];let currentPage="homePage";
+function syncNavIndicator(){
+ const bar=document.querySelector(".navinner"),indicator=bar?.querySelector(".nav-indicator"),active=bar?.querySelector("button.active");
+ if(!bar||!indicator||!active)return;
+ indicator.style.width=active.offsetWidth+"px";
+ indicator.style.height=active.offsetHeight+"px";
+ indicator.style.transform="translate3d("+active.offsetLeft+"px,0,0)";
+}
+function nav(page){
+ if(!pageOrder.includes(page))return;
+ const oldIndex=pageOrder.indexOf(currentPage),newIndex=pageOrder.indexOf(page),changed=page!==currentPage;
+ $("chatPage").classList.add("hidden");
+ document.querySelectorAll(".pageview").forEach(p=>{
+  const active=p.id===page;p.classList.toggle("hidden",!active);
+  p.classList.remove("page-slide-next","page-slide-prev");
+  if(active&&changed){void p.offsetWidth;p.classList.add(newIndex>oldIndex?"page-slide-next":"page-slide-prev")}
+ });
+ document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+ currentPage=page;
+ requestAnimationFrame(syncNavIndicator);
+}
 document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>nav(b.dataset.page));
 $("seeAll").onclick=()=>nav("explorePage");
-let swipeStartX=0,swipeStartY=0,swipePointer=null;const swipeArea=$("appScreen");swipeArea.style.touchAction="pan-y";swipeArea.addEventListener("pointerdown",e=>{if(!e.isPrimary||e.pointerType==="mouse"&&e.button!==0)return;if(e.target.closest("button,input,textarea,select,a,.nav,.chatbox,.xchat-search,.xchat-filter-menu")){swipePointer=null;return}swipePointer=e.pointerId;swipeStartX=e.clientX;swipeStartY=e.clientY},{passive:true});swipeArea.addEventListener("pointerup",e=>{if(swipePointer!==e.pointerId)return;swipePointer=null;if(!$("chatPage").classList.contains("hidden"))return;const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY;if(Math.abs(dx)<78||Math.abs(dx)<Math.abs(dy)*1.35)return;const i=pageOrder.indexOf(currentPage),next=i+(dx<0?1:-1);if(next>=0&&next<pageOrder.length)nav(pageOrder[next])},{passive:true});swipeArea.addEventListener("pointercancel",()=>{swipePointer=null},{passive:true});
+window.addEventListener("resize",syncNavIndicator,{passive:true});
+let swipeStartX=0,swipeStartY=0,swipeStartAt=0,swipePointer=null,swipeOriginPage=null;
+const swipeArea=$("appScreen");
+swipeArea.style.touchAction="pan-y";
+swipeArea.addEventListener("pointerdown",e=>{
+ if(!e.isPrimary||(e.pointerType==="mouse"&&e.button!==0))return;
+ const page=e.target.closest(".pageview");
+ if(!page||page.id!==currentPage||!$("chatPage").classList.contains("hidden")){swipePointer=null;return}
+ if(e.target.closest("button,input,textarea,select,a,[contenteditable='true'],.nav,.chatbox,.xchat-search,.xchat-filter-wrap")){swipePointer=null;return}
+ swipePointer=e.pointerId;swipeOriginPage=page.id;swipeStartX=e.clientX;swipeStartY=e.clientY;swipeStartAt=e.timeStamp;
+},{passive:true});
+swipeArea.addEventListener("pointerup",e=>{
+ if(swipePointer!==e.pointerId)return;
+ const dx=e.clientX-swipeStartX,dy=e.clientY-swipeStartY,elapsed=e.timeStamp-swipeStartAt,origin=swipeOriginPage;
+ swipePointer=null;swipeOriginPage=null;
+ if(origin!==currentPage||!$("chatPage").classList.contains("hidden"))return;
+ if(Math.abs(dx)<72||Math.abs(dx)<Math.abs(dy)*1.3||elapsed>850)return;
+ const i=pageOrder.indexOf(currentPage),next=i+(dx<0?1:-1);
+ if(next>=0&&next<pageOrder.length)nav(pageOrder[next]);
+},{passive:true});
+const cancelSwipe=()=>{swipePointer=null;swipeOriginPage=null};
+swipeArea.addEventListener("pointercancel",cancelSwipe,{passive:true});
+swipeArea.addEventListener("lostpointercapture",cancelSwipe,{passive:true});
 async function loadSocial(user){
  me=user;const ownRef=doc(db,"members",user.uid);let own;try{own=await getDoc(ownRef)}catch(e){show("pendingScreen");$("pendingText").textContent="Membership check failed. Signed-in UID: "+user.uid+". Firebase error: "+(e.code||e.message)+". Check Firestore rules and project.";return}if(!own.exists()||own.data().active!==true){show("pendingScreen");$("pendingText").textContent="Membership not approved. Signed-in UID: "+user.uid+". Document path checked: members/"+user.uid+". Document exists: "+own.exists()+". active value: "+(own.exists()?String(own.data().active):"document missing")+". Make sure this exact document exists in project melo2574.";return}
- show("appScreen");$("myName").textContent=user.displayName||user.email?.split("@")[0]||"Your profile";$("myEmail").textContent=user.email||"";$("myAvatar").textContent=($("myName").textContent[0]||"M").toUpperCase();$("chatProfileIcon").textContent=$("myAvatar").textContent;$("profileName").textContent=$("myName").textContent;$("profileEmail").textContent=user.email||"";$("profileAvatar").textContent=$("myAvatar").textContent;
+ show("appScreen");requestAnimationFrame(syncNavIndicator);$("myName").textContent=user.displayName||user.email?.split("@")[0]||"Your profile";$("myEmail").textContent=user.email||"";$("myAvatar").textContent=($("myName").textContent[0]||"M").toUpperCase();$("chatProfileIcon").textContent=$("myAvatar").textContent;$("profileName").textContent=$("myName").textContent;$("profileEmail").textContent=user.email||"";$("profileAvatar").textContent=$("myAvatar").textContent;
  stopAll();
  const unsubMembers=onSnapshot(query(collection(db,"members"),where("active","==",true)),async snap=>{
   members=[...snap.docs.map(d=>({uid:d.id,...d.data()})).filter(m=>m.uid!==user.uid),...demoMembers];
