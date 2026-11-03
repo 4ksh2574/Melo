@@ -243,3 +243,13 @@ button::-moz-focus-inner { border: 0; }
 .profile-card .settings-card>p{color:var(--muted)}
 :root[data-theme="light"] .profile-settings-button,
 :root[data-theme="light"] .settings-back{background:#edf4f1;border-color:var(--line);color:var(--text)}
+
+
+/* Compact account controls inside Settings */
+.account-settings{margin-top:16px}
+.account-settings .settings-heading{margin-bottom:5px}
+.account-settings>p{margin:8px 0 14px}
+.signout-button{width:100%;padding:12px 14px;border:1px solid #d66b6b55;border-radius:13px;background:#d66b6b12;color:#e69a9a;font-weight:700;text-align:center;transition:background .2s,transform .2s}
+.signout-button:active{transform:scale(.985);background:#d66b6b22}
+:root[data-theme="light"] .signout-button{color:#a43d3d;background:#c94b4b0c;border-color:#a43d3d30}
+.dock-inner{width:min(340px,calc(100% - 40px))}
