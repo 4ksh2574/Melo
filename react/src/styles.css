@@ -225,3 +225,21 @@ button:focus-visible,
 }
 button::-moz-focus-inner { border: 0; }
 ::selection { background: #20ad9b44; color: inherit; }
+
+
+/* Cleaner home and dedicated profile settings entry */
+.home-circle-title{margin-top:4px;margin-bottom:18px}
+.profile-card{position:relative;margin-top:12px;padding:22px 20px 26px}
+.profile-topline{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.profile-label{color:var(--muted);font-size:10px;font-weight:800;letter-spacing:1.5px}
+.profile-settings-button{width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:var(--surface-2);color:var(--text);font-size:21px;transition:transform .3s cubic-bezier(.2,1.5,.3,1),background .2s}
+.profile-settings-button:active{transform:rotate(35deg) scale(.92)}
+.profile-settings-head{display:flex;align-items:center;gap:13px;margin:0 0 22px;text-align:left}
+.profile-settings-head>div{display:grid;gap:4px}
+.profile-settings-head small{color:var(--heading-accent);font-size:9px;font-weight:800;letter-spacing:1.5px}
+.profile-settings-head h2{margin:0;font:800 22px Manrope,sans-serif}
+.settings-back{width:38px;height:38px;border:1px solid var(--line);border-radius:50%;background:var(--surface-2);color:var(--text);font-size:27px;line-height:1}
+.profile-card .settings-card{margin:0 0 20px;padding:17px;text-align:left}
+.profile-card .settings-card>p{color:var(--muted)}
+:root[data-theme="light"] .profile-settings-button,
+:root[data-theme="light"] .settings-back{background:#edf4f1;border-color:var(--line);color:var(--text)}
