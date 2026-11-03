@@ -106,7 +106,15 @@ service cloud.firestore {
       );
       allow list: if approved() && request.auth.uid in resource.data.memberIds;
       allow create: if validConversationCreate(conversationId);
-      allow update, delete: if false;
+      allow update: if approved()
+        && request.auth.uid in resource.data.memberIds
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'disappearingAfterSeconds'
+        ])
+        && request.resource.data.disappearingAfterSeconds in [
+          0, 300, 3600, 28800, 86400, 604800, 2419200
+        ];
+      allow delete: if false;
 
       match /messages/{messageId} {
         function conversationMember() {
@@ -119,13 +127,24 @@ service cloud.firestore {
 
         allow read: if conversationMember();
         allow create: if conversationMember()
-          && request.resource.data.keys().hasOnly(['uid', 'text', 'createdAt'])
+          && request.resource.data.keys().hasOnly(['uid', 'text', 'createdAt', 'expiresAt'])
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 4000
-          && request.resource.data.createdAt == request.time;
-        allow update, delete: if false;
+          && request.resource.data.createdAt == request.time
+          && (
+            !('expiresAt' in request.resource.data.keys())
+            || (
+              request.resource.data.expiresAt is timestamp
+              && request.resource.data.expiresAt > request.time
+            )
+          );
+        allow update: if false;
+        allow delete: if conversationMember()
+          && resource.data.keys().hasAny(['expiresAt'])
+          && resource.data.expiresAt is timestamp
+          && resource.data.expiresAt <= request.time;
       }
     }
 
