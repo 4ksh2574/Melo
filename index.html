@@ -41,7 +41,7 @@ function nav(page){$("chatPage").classList.add("hidden");document.querySelectorA
 document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>nav(b.dataset.page));
 $("topSearch").onclick=()=>nav("explorePage");$("topInbox").onclick=()=>nav("inboxPage");$("seeAll").onclick=()=>nav("explorePage");
 async function loadSocial(user){
- me=user;const own=await getDoc(doc(db,"members",user.uid));if(!own.exists()||own.data().active!==true){show("pendingScreen");return}
+ me=user;const ownRef=doc(db,"members",user.uid);let own;try{own=await getDoc(ownRef)}catch(e){show("pendingScreen");$("pendingText").textContent="Membership check failed. Signed-in UID: "+user.uid+". Firebase error: "+(e.code||e.message)+". Check Firestore rules and project.";return}if(!own.exists()||own.data().active!==true){show("pendingScreen");$("pendingText").textContent="Membership not approved. Signed-in UID: "+user.uid+". Document path checked: members/"+user.uid+". Document exists: "+own.exists()+". active value: "+(own.exists()?String(own.data().active):"document missing")+". Make sure this exact document exists in project melo2574.";return}
  show("appScreen");$("myName").textContent=user.displayName||user.email?.split("@")[0]||"Your profile";$("myEmail").textContent=user.email||"";$("myAvatar").textContent=($("myName").textContent[0]||"M").toUpperCase();$("profileName").textContent=$("myName").textContent;$("profileEmail").textContent=user.email||"";$("profileAvatar").textContent=$("myAvatar").textContent;
  stopAll();
  const unsubMembers=onSnapshot(query(collection(db,"members"),where("active","==",true)),async snap=>{
