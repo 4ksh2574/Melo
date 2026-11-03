@@ -187,6 +187,32 @@ $("dmForm").addEventListener("submit",async e=>{e.preventDefault();const text=$(
 $("backToInbox").onclick=()=>{if(stopDm){stopDm();stopDm=null}nav("inboxPage")};
 $("signOut").onclick=()=>signOut(auth);$("pendingOut").onclick=()=>signOut(auth);
 refreshIcons();
-getRedirectResult(auth).catch(x=>{console.error("Google redirect sign-in:",x);show("authScreen");setStatus(errText(x));$("googleBtn").disabled=false});
-onAuthStateChanged(auth,user=>{if(user)loadSocial(user).catch(x=>{console.error(x);show("pendingScreen");$("pendingText").textContent="Melo couldn't load your private circle. Check Firestore rules."});else{stopAll();me=null;show("authScreen")}});
+// Resolve any Google redirect result before attaching the auth-state listener.
+// This avoids the initial signed-out callback briefly overriding the redirect return.
+(async()=>{
+  try{
+    const result=await getRedirectResult(auth);
+    if(result?.user) console.info("Google redirect completed for:",result.user.uid);
+  }catch(x){
+    console.error("Google redirect sign-in:",x);
+    show("authScreen");
+    setStatus(errText(x));
+    $("googleBtn").disabled=false;
+  }
+  onAuthStateChanged(auth,user=>{
+    if(user){
+      $("googleBtn").disabled=false;
+      loadSocial(user).catch(x=>{
+        console.error("Melo startup:",x);
+        show("pendingScreen");
+        $("pendingText").textContent="Melo couldn't load your private circle. "+(x.code||x.message||"Check Firestore rules.");
+      });
+    }else{
+      stopAll();
+      me=null;
+      show("authScreen");
+      $("googleBtn").disabled=false;
+    }
+  });
+})();
 </script></body></html>
