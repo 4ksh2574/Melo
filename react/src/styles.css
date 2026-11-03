@@ -253,3 +253,41 @@ button::-moz-focus-inner { border: 0; }
 .signout-button:active{transform:scale(.985);background:#d66b6b22}
 :root[data-theme="light"] .signout-button{color:#a43d3d;background:#c94b4b0c;border-color:#a43d3d30}
 .dock-inner{width:min(340px,calc(100% - 40px))}
+
+
+/* Navigation indicator: align exactly with one of the three equal tabs. */
+.dock-indicator{
+  width:calc((100% - 16px) / 3);
+  transition:transform 420ms cubic-bezier(.22,.8,.2,1);
+}
+
+/* A calmer, more breathable Chats inbox. */
+.content{padding:24px 18px 30px}
+.heading{margin-bottom:20px}
+.heading h1{font-size:26px}
+.chat-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 18px}
+.chat-toolbar-copy{display:grid;gap:4px;min-width:0}
+.chat-toolbar-copy small{color:var(--heading-accent);font-size:9px;font-weight:800;letter-spacing:1.35px}
+.chat-toolbar-copy span{color:var(--muted);font-size:12px}
+.primary.compact{padding:10px 13px;font-size:12px;border-radius:13px}
+.section-kicker{margin:16px 3px 8px;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:1.35px}
+.recent-kicker{margin-top:21px}
+.member-list{gap:7px;margin-top:8px}
+.chat-row{min-height:62px;padding:10px 11px;gap:10px;border-radius:15px}
+.chat-row .avatar{width:40px;height:40px;font-size:13px}
+.chat-row .group-avatar{font-size:16px}
+.member-info{gap:3px}
+.member-info strong{font-size:12.5px}
+.member-info small{font-size:10px}
+.arrow{font-size:21px}
+.group-panel{margin-bottom:16px;padding:15px}
+.group-panel>label{font-size:11px}
+.group-pick{padding:7px 8px;font-size:11px}
+.group-panel-buttons button{padding:11px 12px;font-size:12px}
+.empty{padding:22px 10px;font-size:12px}
+@media(max-width:430px){
+  .content{padding:22px 16px 28px}
+  .chat-toolbar{gap:9px;margin-bottom:15px}
+  .primary.compact{padding:9px 11px;font-size:11px}
+  .chat-row{min-height:60px}
+}
