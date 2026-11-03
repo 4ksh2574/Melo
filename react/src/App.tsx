@@ -236,12 +236,32 @@ export default function App() {
     setMediaTab("media");
     if (!active || !user) {
       setNickname("");
-      setDisappearingAfterSeconds(0);
       return;
     }
     setNickname(window.localStorage.getItem("melo-nickname:" + user.uid + ":" + active.id) || "");
-    setDisappearingAfterSeconds(active.disappearingAfterSeconds || 0);
-  }, [active?.id, active?.disappearingAfterSeconds, user?.uid]);
+  }, [active?.id, user?.uid]);
+
+  useEffect(() => {
+    setDisappearingAfterSeconds(active?.disappearingAfterSeconds || 0);
+  }, [active?.id, active?.disappearingAfterSeconds]);
+
+  useEffect(() => {
+    if (!active || !messages.length) return;
+    const expiring = messages.filter((message) => message.expiresAt && stampValue(message.expiresAt) > Date.now());
+    if (!expiring.length) return;
+    const nextExpiry = Math.min(...expiring.map((message) => stampValue(message.expiresAt)));
+    const timeout = window.setTimeout(() => {
+      const now = Date.now();
+      const due = messages.filter((message) => message.expiresAt && stampValue(message.expiresAt) <= now);
+      setMessages((current) => current.filter((message) => !message.expiresAt || stampValue(message.expiresAt) > now));
+      due.forEach((message) => {
+        deleteDoc(doc(db, "conversations", active.id, "messages", message.id)).catch((error) => {
+          console.warn("Expired message cleanup will retry when the chat is opened:", error);
+        });
+      });
+    }, Math.max(100, nextExpiry - Date.now() + 500));
+    return () => window.clearTimeout(timeout);
+  }, [messages, active?.id]);
 
   useEffect(() => {
     if (!user || !active) {
@@ -303,7 +323,7 @@ export default function App() {
       unsubscribeLegacy?.();
       unsubscribeFour?.();
     };
-  }, [user, active]);
+  }, [user?.uid, active?.id]);
 
   const allMembers = useMemo(() => user
     ? [{ uid: user.uid, displayName: user.displayName || user.email || "You" }, ...members]
