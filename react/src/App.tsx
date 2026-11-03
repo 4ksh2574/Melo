@@ -361,7 +361,7 @@ export default function App() {
     }
   }
 
-  const extractedLinks = allMessages.flatMap((message) => message.text.split(/\\s+/)
+  const extractedLinks = allMessages.flatMap((message) => message.text.split(/\s+/)
     .filter((word) => word.startsWith("https://") || word.startsWith("http://"))
     .map((url) => ({ url: url.replace(/[.,!?]+$/, ""), id: message.source + ":" + message.id, text: message.text })));
 
