@@ -48,11 +48,13 @@ const firebaseConfig={apiKey:"AIzaSyAe8NedxzxrKXJEyFaj9k7L4PJGm9qE-4Q",authDomai
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),google=new GoogleAuthProvider(),$=id=>document.getElementById(id);
 let me=null,members=[],following=new Set(),stopFns=[],activeChat=null,stopDm=null;
 const clean=s=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function refreshIcons(){if(window.lucide)window.lucide.createIcons()}\nfunction show(id){["authScreen","pendingScreen","appScreen"].forEach(x=>$(x).classList.toggle("hidden",x!==id));refreshIcons()}
+function refreshIcons(){if(window.lucide)window.lucide.createIcons()}
+function show(id){["authScreen","pendingScreen","appScreen"].forEach(x=>$(x).classList.toggle("hidden",x!==id));refreshIcons()}
 function setStatus(t){$("authStatus").textContent=t}
 function errText(e){return({"auth/invalid-credential":"Email or password is incorrect.","auth/popup-closed-by-user":"Google sign-in was closed.","auth/operation-not-allowed":"Google sign-in is not enabled in Firebase Authentication.","auth/unauthorized-continue-uri":"The sign-in return URL is not authorised. Check Firebase Authentication settings.","auth/web-storage-unsupported":"This browser is blocking the storage Google sign-in needs. Open Melo in Chrome.","auth/unauthorized-domain":"Add 4ksh2574.github.io to Firebase Authorized domains.","auth/network-request-failed":"Check your internet connection."})[e.code]||e.message||"Something went wrong."}
 $("loginForm").addEventListener("submit",async e=>{e.preventDefault();setStatus("Signing in…");try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value)}catch(x){setStatus(errText(x))}});
-google.setCustomParameters({prompt:"select_account"});\n$("googleBtn").onclick=async()=>{const b=$("googleBtn");b.disabled=true;setStatus("Redirecting to Google…");try{await signInWithRedirect(auth,google)}catch(x){setStatus(errText(x));b.disabled=false}};
+google.setCustomParameters({prompt:"select_account"});
+$("googleBtn").onclick=async()=>{const b=$("googleBtn");b.disabled=true;setStatus("Redirecting to Google…");try{await signInWithRedirect(auth,google)}catch(x){setStatus(errText(x));b.disabled=false}};
 $("resetBtn").onclick=async()=>{let email=$("email").value.trim();if(!email){setStatus("Enter your email first.");return}try{await sendPasswordResetEmail(auth,email);setStatus("Reset email sent.")}catch(x){setStatus(errText(x))}};
 function profileName(m){return m.displayName||m.username||m.email?.split("@")[0]||"Melo member"}
 function avatarHTML(m){return '<div class="avatar">'+clean(profileName(m).charAt(0).toUpperCase())+'</div>'}
@@ -97,5 +99,7 @@ async function openChat(target){
 $("dmForm").addEventListener("submit",async e=>{e.preventDefault();const text=$("dmInput").value.trim();if(!text||!activeChat||!following.has(activeChat.uid))return;const id=chatId(me.uid,activeChat.uid);try{await addDoc(collection(db,"chats",id,"messages"),{uid:me.uid,text,createdAt:serverTimestamp()});$("dmInput").value=""}catch(x){alert("Message not sent. Check Firestore rules.");console.error(x)}});
 $("backToInbox").onclick=()=>{if(stopDm){stopDm();stopDm=null}nav("inboxPage")};
 $("signOut").onclick=()=>signOut(auth);$("pendingOut").onclick=()=>signOut(auth);
-refreshIcons();\ngetRedirectResult(auth).catch(x=>{console.error("Google redirect sign-in:",x);show("authScreen");setStatus(errText(x));$("googleBtn").disabled=false});\nonAuthStateChanged(auth,user=>{if(user)loadSocial(user).catch(x=>{console.error(x);show("pendingScreen");$("pendingText").textContent="Melo couldn't load your private circle. Check Firestore rules."});else{stopAll();me=null;show("authScreen")}});
+refreshIcons();
+getRedirectResult(auth).catch(x=>{console.error("Google redirect sign-in:",x);show("authScreen");setStatus(errText(x));$("googleBtn").disabled=false});
+onAuthStateChanged(auth,user=>{if(user)loadSocial(user).catch(x=>{console.error(x);show("pendingScreen");$("pendingText").textContent="Melo couldn't load your private circle. Check Firestore rules."});else{stopAll();me=null;show("authScreen")}});
 </script></body></html>
