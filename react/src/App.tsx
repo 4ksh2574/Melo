@@ -856,11 +856,11 @@ export default function App() {
           <section className="inbox-hero">
             <div className="inbox-hero-top">
               <div className="inbox-hero-copy">
-                <small>MELO · YOUR PRIVATE CIRCLE</small>
+                <small>AX · MELO PRIVATE NETWORK</small>
                 <h1>Good to see you, {(user?.displayName || "there").split(" ")[0]}.</h1>
-                <p>Your people, one message away.</p>
+                <p>Your circle. Your space. Always connected.</p>
               </div>
-              <div className="inbox-hero-mark" aria-hidden="true"><span>✳</span></div>
+              <div className="inbox-hero-mark ax-inbox-mark" aria-label="AX"><span>AX</span></div>
             </div>
             <div className="inbox-contacts-heading">
               <span>CONTACT LIST</span><small>{members.length + 1} members</small>
