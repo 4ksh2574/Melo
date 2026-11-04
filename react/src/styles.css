@@ -488,3 +488,32 @@ button::-moz-focus-inner { border: 0; }
 :root[data-theme="light"] .attachment-sheet{background:#ffffff;border-color:#dce5e0;box-shadow:0 12px 36px #14231d25}
 :root[data-theme="light"] .attachment-sheet button{color:#26372f;background:#f2f6f4}
 :root[data-theme="light"] .expiry-banner{background:#edf2ef;color:#68776f}
+
+
+/* Reference-matched compact conversation layout for direct and group chats. */
+.conversation-head-centered{position:relative;height:76px;min-height:76px;justify-content:space-between;padding:7px 13px 8px;background:#050606;border-bottom:1px solid #ffffff0b}
+.conversation-head-centered .chat-back,.conversation-head-centered .chat-more{position:relative;z-index:2;width:35px;height:35px;border:0;border-radius:50%;background:#ffffff0c;color:#f1f5f2}
+.chat-person-centered{position:absolute;left:50%;top:6px;width:min(66%,260px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center}
+.chat-person-centered .chat-header-avatar{width:29px!important;height:29px!important;font-size:11px;border:1px solid #ffffff20}
+.chat-person-centered .conversation-title{display:flex;flex-direction:column;align-items:center;gap:1px;width:100%}
+.chat-person-centered .conversation-title strong{max-width:100%;font-size:11px;line-height:1.1;font-weight:700}
+.chat-person-centered .conversation-title small{font-size:8px;line-height:1.1;color:#7f8984}
+.conversation-head-centered .chat-more{font-size:18px}
+.conversation .messages{padding:14px 13px 18px;gap:5px;background:#050606}
+.conversation .message-wrap{gap:2px}
+.conversation .message-sender{padding:0 8px;font-size:9px;color:#80cfc1}
+.conversation .message-wrap .bubble{max-width:min(84vw,520px);padding:6px 10px;border:1px solid #ffffff08;border-radius:13px;background:#202322;color:#edf1ef;font-size:11px;line-height:1.35;box-shadow:none}
+.conversation .message-wrap .bubble.mine{border-color:#087e70;border-radius:13px;background:#087e70;color:#fff}
+.conversation .message-wrap.mine-wrap{align-items:flex-end}
+.conversation .composer{gap:7px;padding:8px 10px max(9px,env(safe-area-inset-bottom));background:#070908;border-top:1px solid #ffffff0a}
+.conversation .attach-button{width:34px;height:34px;border:0;background:#202322;font-size:23px}
+.conversation .composer input{height:36px;border:1px solid #ffffff0c;border-radius:20px;background:#202322;font-size:12px}
+.conversation .send{width:35px;height:35px;font-size:16px}
+:root[data-theme="light"] .conversation-head-centered{background:#f7f9f8;border-color:#e5ebe7}
+:root[data-theme="light"] .conversation-head-centered .chat-back,:root[data-theme="light"] .conversation-head-centered .chat-more{background:#e8efeb;color:#25352e}
+:root[data-theme="light"] .chat-person-centered .conversation-title strong{color:#1b2922}
+:root[data-theme="light"] .chat-person-centered .conversation-title small{color:#718078}
+:root[data-theme="light"] .conversation .messages{background:#f3f6f4}
+:root[data-theme="light"] .conversation .message-wrap .bubble{background:#e8eeeb;color:#1c2923}
+:root[data-theme="light"] .conversation .message-wrap .bubble.mine{background:#087e70;color:#fff}
+:root[data-theme="light"] .conversation .composer{background:#f7f9f8;border-color:#e5ebe7}
