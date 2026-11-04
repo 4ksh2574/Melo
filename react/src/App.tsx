@@ -162,6 +162,7 @@ export default function App() {
   const [legacyMessages, setLegacyMessages] = useState<Message[]>([]);
   const [fourMessages, setFourMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
+  const [attachmentOpen, setAttachmentOpen] = useState(false);
   const [swipeX, setSwipeX] = useState<number | null>(null);
   const [swipeY, setSwipeY] = useState<number | null>(null);
   const [groupPanel, setGroupPanel] = useState(false);
@@ -332,6 +333,7 @@ export default function App() {
   }, [demoReady, demoExpiresAt, demoConversations, demoMessages, user?.uid]);
 
   useEffect(() => {
+    setAttachmentOpen(false);
     setChatPanel("chat");
     setMediaTab("media");
     if (!active || !user) {
@@ -689,12 +691,12 @@ export default function App() {
     {active ? <section className="conversation">
       {chatPanel === "chat" ? <>
         <header className="conversation-head">
-          <button className="back" onClick={() => setActive(null)} aria-label="Back to chats">‹</button>
+          <button className="back chat-back" onClick={() => setActive(null)} aria-label="Back to chats">‹</button>
           <button className="chat-person-trigger" onClick={() => setChatPanel("details")} aria-label="Conversation details">
-            <span className="avatar">{active.type === "group" ? "✳" : initials(titleOf(active))}</span>
+            <span className={"avatar chat-header-avatar " + (active.type === "group" ? "group-avatar" : "")}>{active.type === "group" ? "✳" : initials(titleOf(active))}</span>
             <span className="conversation-title"><strong>{titleOf(active)}</strong><small>{active.demo ? "Sample · This device only" : active.type === "group" ? active.memberIds.length + " members · Private group" : "Private conversation"}</small></span>
           </button>
-          <button className="chat-more" onClick={() => setChatPanel("details")} aria-label="More conversation options">···</button>
+          <button className="chat-more" onClick={() => setChatPanel("details")} aria-label="Conversation info">···</button>
         </header>
         <div className="messages">
           {allMessages.length ? allMessages.map((message, index) => {
@@ -709,9 +711,17 @@ export default function App() {
           }) : <p className="empty">A little hello goes a long way ✨</p>}
         </div>
         {disappearingAfterSeconds > 0 && <div className="expiry-banner">◷ New messages disappear after {expiryLabel(disappearingAfterSeconds).toLowerCase()}</div>}
+        {attachmentOpen && <div className="attachment-sheet" role="dialog" aria-label="Attachments">
+          {[
+            ["▧", "Photos"], ["◎", "Camera"], ["▤", "Files"], ["GIF", "GIFs"],
+          ].map(([icon, label]) => <button key={label} type="button" onClick={() => { setAttachmentOpen(false); setNotice("Media sharing is not enabled in Melo yet."); }}>
+            <span>{icon}</span>{label}
+          </button>)}
+        </div>}
         <form className="composer" onSubmit={sendMessage}>
-          <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write a message…" maxLength={4000} />
-          <button className="send" disabled={busy || !draft.trim()}>↑</button>
+          <button className="attach-button" type="button" aria-label="Add attachment" onClick={() => setAttachmentOpen((open) => !open)}>{attachmentOpen ? "×" : "+"}</button>
+          <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Message" maxLength={4000} />
+          <button className="send" disabled={busy || !draft.trim()} aria-label="Send message">↑</button>
         </form>
       </> : <div className="chat-subview">
         <header className="subview-head">
