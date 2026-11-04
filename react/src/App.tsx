@@ -144,6 +144,7 @@ export default function App() {
   const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
   const [profilePhotoDraft, setProfilePhotoDraft] = useState("");
   const [profilePhotoLoadError, setProfilePhotoLoadError] = useState(false);
+  const [profilePhotoHelpOpen, setProfilePhotoHelpOpen] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
     const saved = window.localStorage.getItem("melo-theme");
     return saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
@@ -1056,7 +1057,16 @@ export default function App() {
                 </span>
                 <div><strong>{user?.displayName || "Melo member"}</strong><small>Preview of your profile picture</small></div>
               </div>
-              <label className="profile-photo-label" htmlFor="profile-photo-url">Image URL</label>
+              <div className="profile-photo-label-row">
+                <label className="profile-photo-label" htmlFor="profile-photo-url">Image URL</label>
+                <button type="button" className="profile-photo-help-button"
+                  aria-label="How to get an image link" aria-expanded={profilePhotoHelpOpen}
+                  onClick={() => setProfilePhotoHelpOpen((open) => !open)}>ⓘ</button>
+              </div>
+              {profilePhotoHelpOpen && <div className="profile-photo-help">
+                <strong>How to get your image link</strong>
+                <p>Upload your picture to an image-hosting service, make it publicly viewable, then copy its <b>direct image link</b> (not the page's share link). Paste the link here. It should start with <b>https://</b>.</p>
+              </div>}
               <input id="profile-photo-url" className="profile-photo-input" type="url"
                 value={profilePhotoDraft} onChange={(event) => {
                   setProfilePhotoDraft(event.target.value);
