@@ -878,7 +878,6 @@ export default function App() {
               <div className="inbox-hero-copy">
                 <small>AX · MELO PRIVATE NETWORK</small>
                 <h1>Good to see you, {(user?.displayName || "there").split(" ")[0]}.</h1>
-                <p>Your circle. Your space. Always connected.</p>
               </div>
               <div className="inbox-hero-mark ax-inbox-mark" aria-label="AX"><span>AX</span></div>
             </div>
