@@ -80,6 +80,7 @@ type GoogleCalendarEvent = {
   description?: string;
   htmlLink?: string;
   status?: string;
+  calendarSource?: "personal" | "holiday";
   start?: { date?: string; dateTime?: string };
   end?: { date?: string; dateTime?: string };
 };
@@ -351,15 +352,29 @@ export default function App() {
         maxResults: "250",
       });
       try {
-        const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?" + params.toString(), {
-          headers: { Authorization: "Bearer " + googleCalendarToken },
-        });
-        const payload = await response.json() as { items?: GoogleCalendarEvent[]; error?: { message?: string } };
-        if (!response.ok) {
-          if (response.status === 401) setGoogleCalendarToken("");
-          throw new Error(payload.error?.message || "Google Calendar could not be loaded.");
+        const headers = { Authorization: "Bearer " + googleCalendarToken };
+        const holidayCalendarId = "en.indian#holiday@group.v.calendar.google.com";
+        const [personalResponse, holidayResponse] = await Promise.all([
+          fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?" + params.toString(), { headers }),
+          fetch("https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(holidayCalendarId) + "/events?" + params.toString(), { headers }),
+        ]);
+        const personalPayload = await personalResponse.json() as { items?: GoogleCalendarEvent[]; error?: { message?: string } };
+        const holidayPayload = holidayResponse.ok
+          ? await holidayResponse.json() as { items?: GoogleCalendarEvent[] }
+          : { items: [] as GoogleCalendarEvent[] };
+        if (!personalResponse.ok) {
+          if (personalResponse.status === 401) setGoogleCalendarToken("");
+          throw new Error(personalPayload.error?.message || "Google Calendar could not be loaded.");
         }
-        if (!cancelled) setGoogleCalendarEvents((payload.items || []).filter((event) => event.status !== "cancelled"));
+        if (!cancelled) {
+          const personalEvents = (personalPayload.items || [])
+            .filter((event) => event.status !== "cancelled")
+            .map((event) => ({ ...event, calendarSource: "personal" as const }));
+          const holidayEvents = (holidayPayload.items || [])
+            .filter((event) => event.status !== "cancelled")
+            .map((event) => ({ ...event, calendarSource: "holiday" as const }));
+          setGoogleCalendarEvents([...personalEvents, ...holidayEvents]);
+        }
       } catch (error) {
         if (!cancelled) {
           console.error("Google Calendar:", error);
@@ -729,7 +744,7 @@ export default function App() {
     try {
       const client = oauth.initTokenClient({
         client_id: googleCalendarClientId,
-        scope: "https://www.googleapis.com/auth/calendar.events.owned",
+        scope: "https://www.googleapis.com/auth/calendar.events.owned https://www.googleapis.com/auth/calendar.events.readonly",
         callback: (response) => {
           if (!response.access_token || response.error) {
             setNotice(response.error_description || "Google Calendar access was not granted.");
@@ -1305,15 +1320,16 @@ export default function App() {
                   if (!day) return <span className="planner-calendar-blank" key={"blank-"+index}/>;
                   const dateKey = localDateKey(new Date(plannerMonth.getFullYear(),plannerMonth.getMonth(),day));
                   const hasTask = plannerTasks.some((task) => task.dueDate === dateKey && !task.done);
-                  const hasGoogleEvent = googleCalendarEvents.some((event) => googleEventDateKey(event) === dateKey);
+                  const hasGoogleEvent = googleCalendarEvents.some((event) => googleEventDateKey(event) === dateKey && event.calendarSource !== "holiday");
+                  const hasHoliday = googleCalendarEvents.some((event) => googleEventDateKey(event) === dateKey && event.calendarSource === "holiday");
                   const hasRoutine = routineItems.some((item) => routineIsScheduled(item, dateKey));
-                  return <button type="button" key={dateKey} className={(plannerSelectedDate === dateKey ? "selected " : "") + (dateKey === todayKey ? "today " : "") + (hasTask ? "has-task " : "") + (hasGoogleEvent ? "has-google " : "") + (hasRoutine ? "has-routine" : "")} onClick={() => setPlannerSelectedDate(dateKey)}>
+                  return <button type="button" key={dateKey} className={(plannerSelectedDate === dateKey ? "selected " : "") + (dateKey === todayKey ? "today " : "") + (hasTask ? "has-task " : "") + (hasGoogleEvent ? "has-google " : "") + (hasHoliday ? "has-holiday " : "") + (hasRoutine ? "has-routine" : "")} onClick={() => setPlannerSelectedDate(dateKey)}>
                     <span className="planner-calendar-day-number">{day}</span>
-                    <span className="planner-calendar-dots">{hasTask && <i className="task-dot"/>}{hasGoogleEvent && <i className="google-dot"/>}{hasRoutine && <i className="routine-dot"/>}</span>
+                    <span className="planner-calendar-dots">{hasTask && <i className="task-dot"/>}{hasGoogleEvent && <i className="google-dot"/>}{hasHoliday && <i className="holiday-dot"/>}{hasRoutine && <i className="routine-dot"/>}</span>
                   </button>;
                 })}
               </div>
-              <div className="planner-calendar-legend"><span><i className="task-dot"/> Melo tasks</span><span><i className="google-dot"/> Google events</span><span><i className="routine-dot"/> Routines</span></div>
+              <div className="planner-calendar-legend"><span><i className="task-dot"/> Melo tasks</span><span><i className="google-dot"/> Google events</span><span><i className="holiday-dot"/> Indian holidays</span><span><i className="routine-dot"/> Routines</span></div>
             </section>
             <div className="planner-agenda-head"><div><small>DAY AGENDA</small><h3>{new Date(plannerSelectedDate + "T00:00:00").toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}</h3></div><button type="button" onClick={() => {setPlannerDueDate(plannerSelectedDate);setPlannerView("tasks");}}>＋ Add task</button></div>
             <div className="planner-agenda-section">
@@ -1325,9 +1341,9 @@ export default function App() {
               </div>) : <div className="planner-empty"><span>◷</span><strong>No Melo tasks planned.</strong><small>Add a task to keep this day on track.</small></div>}
             </div>
             <div className="planner-agenda-section">
-              <div className="planner-section-head"><h3>Google Calendar</h3><small>{selectedDateGoogleEvents.length}{googleCalendarLoading ? " · syncing" : ""}</small></div>
-              {selectedDateGoogleEvents.length ? selectedDateGoogleEvents.map((event)=><div className="planner-google-event" key={event.id}>
-                <span className="planner-google-event-time">{googleEventTimeLabel(event)}</span><div><strong>{event.summary || "Untitled event"}</strong><small>Google Calendar</small></div>{event.htmlLink && <a href={event.htmlLink} target="_blank" rel="noreferrer">Open ↗</a>}
+              <div className="planner-section-head"><h3>Events &amp; holidays</h3><small>{selectedDateGoogleEvents.length}{googleCalendarLoading ? " · syncing" : ""}</small></div>
+              {selectedDateGoogleEvents.length ? selectedDateGoogleEvents.map((event)=><div className={"planner-google-event "+(event.calendarSource === "holiday" ? "planner-holiday-event" : "")} key={event.id}>
+                <span className="planner-google-event-time">{googleEventTimeLabel(event)}</span><div><strong>{event.summary || "Untitled event"}</strong><small>{event.calendarSource === "holiday" ? "🇮🇳 India · Public holiday" : "Google Calendar · Personal event"}</small></div>{event.htmlLink && <a href={event.htmlLink} target="_blank" rel="noreferrer">Open ↗</a>}
               </div>) : <div className="planner-empty planner-empty-compact"><span>G</span><strong>{googleCalendarToken ? "No Google events on this day." : "Connect Google Calendar to see your events."}</strong><small>{googleCalendarToken ? "Your other calendar events will appear here." : "Your Google events stay separate from your Melo tasks."}</small></div>}
             </div>
             <div className="planner-agenda-section">
