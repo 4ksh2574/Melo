@@ -488,3 +488,104 @@ button::-moz-focus-inner { border: 0; }
 :root[data-theme="light"] .attachment-sheet{background:#ffffff;border-color:#dce5e0;box-shadow:0 12px 36px #14231d25}
 :root[data-theme="light"] .attachment-sheet button{color:#26372f;background:#f2f6f4}
 :root[data-theme="light"] .expiry-banner{background:#edf2ef;color:#68776f}
+
+
+/* Contact-first inbox inspired by the reference screen. */
+.content.inbox-content{padding:0 0 112px;overflow-x:hidden}
+.inbox-hero{
+  position:relative;overflow:hidden;padding:25px 19px 48px;
+  border-radius:0 0 30px 30px;
+  background:radial-gradient(circle at 90% 5%,#ffffff26,transparent 34%),linear-gradient(145deg,#6254bd 0%,#7567d0 56%,#8074d9 100%);
+  color:#fff;
+}
+.inbox-hero::after{
+  content:"";position:absolute;width:190px;height:190px;right:-95px;top:80px;
+  border:1px solid #ffffff1c;border-radius:50%;pointer-events:none;
+  box-shadow:0 0 0 22px #ffffff08,0 0 0 44px #ffffff05;
+}
+.inbox-hero-top{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-height:104px}
+.inbox-hero-copy{min-width:0}
+.inbox-hero-copy>small{font-size:9px;font-weight:800;letter-spacing:1.45px;color:#e1dcffb8}
+.inbox-hero-copy h1{margin:12px 0 5px;font:800 clamp(23px,6vw,29px)/1.1 Manrope,sans-serif;letter-spacing:-1px;color:#fff}
+.inbox-hero-copy p{margin:0;color:#e9e6ffcf;font-size:12px}
+.inbox-hero-mark{width:43px;height:43px;flex:none;display:grid;place-items:center;border:1px solid #ffffff2b;border-radius:15px;background:#ffffff18;color:#fff;font-size:25px;box-shadow:inset 0 1px #ffffff40}
+.inbox-contacts-heading{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;margin:20px 1px 12px}
+.inbox-contacts-heading>span{font-size:9px;font-weight:800;letter-spacing:1.4px;color:#e7e3ff}
+.inbox-contacts-heading small{font-size:9px;color:#e7e3ffb8}
+.inbox-contacts-strip{position:relative;z-index:1;display:flex;gap:17px;overflow-x:auto;margin:0 -2px;padding:0 2px 5px;scrollbar-width:none}
+.inbox-contacts-strip::-webkit-scrollbar{display:none}
+.inbox-contact{min-width:57px;max-width:66px;display:flex;flex-direction:column;align-items:center;gap:7px;padding:0;border:0;background:transparent;color:#fff;text-align:center}
+.inbox-contact-you{cursor:default}
+.inbox-contact-avatar{position:relative;width:49px;height:49px;flex:none;border:2px solid #ffffffbd;background:linear-gradient(145deg,#f5b3a6,#e5c4ac);color:#4d3e53;font-size:15px;box-shadow:0 4px 12px #251b6540}
+.inbox-contact-avatar.own{background:linear-gradient(145deg,#b5b7fb,#e4dcff);color:#403675}
+.inbox-contact small{max-width:66px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f4f1ff;font-size:10px;font-weight:600}
+.inbox-contact-avatar img,.inbox-row-avatar img,.group-pick .avatar img,.avatar img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
+.inbox-sheet{
+  position:relative;z-index:2;margin:-28px 10px 0;padding:19px 15px 25px;
+  min-height:420px;border:1px solid var(--line);border-bottom:0;
+  border-radius:29px 29px 0 0;background:var(--page);
+  box-shadow:0 -8px 26px #17103d12;
+}
+.inbox-search{height:43px;display:flex;align-items:center;gap:10px;padding:0 13px;border:1px solid var(--line);border-radius:15px;background:var(--surface-2);color:var(--muted)}
+.inbox-search>span{font-size:25px;line-height:1;transform:rotate(-20deg)}
+.inbox-search input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--text);font:500 12px inherit}
+.inbox-search input::placeholder{color:var(--muted)}
+.inbox-search>button{width:25px;height:25px;border:0;border-radius:50%;background:var(--surface-3);color:var(--muted);font-size:18px}
+.inbox-mode-switch{display:flex;gap:7px;margin:13px 0 21px;padding:4px;border:1px solid var(--line);border-radius:17px;background:var(--surface-2)}
+.inbox-mode-switch button{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 7px;border:0;border-radius:13px;background:transparent;color:var(--muted);font-size:11px;font-weight:700;white-space:nowrap}
+.inbox-mode-switch button.active{background:#fff0a4;color:#38301b;box-shadow:0 3px 10px #ab92201f}
+.inbox-mode-switch button span{min-width:17px;height:17px;display:grid;place-items:center;padding:0 4px;border-radius:99px;background:#00000013;color:inherit;font-size:9px}
+.inbox-section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 3px 9px;color:var(--text)}
+.inbox-section-title>span{font-size:14px;font-weight:750;letter-spacing:-.2px}
+.inbox-section-title>small{color:var(--muted);font-size:10px}
+.inbox-list{display:grid;gap:2px}
+.inbox-row{width:100%;min-height:68px;display:flex;align-items:center;gap:11px;padding:9px 5px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;color:var(--text);text-align:left;transition:background .16s ease,transform .16s ease}
+.inbox-row:active{transform:scale(.99);background:var(--surface-2)}
+.inbox-row-avatar{width:44px;height:44px;flex:none;border:1px solid var(--line);background:linear-gradient(145deg,#e9c6b8,#b9b6e8);color:#4a3b63;font-size:14px}
+.inbox-row-avatar.group-avatar{background:linear-gradient(145deg,#d9d0ff,#b7a8f0);color:#453986}
+.inbox-row-copy{min-width:0;flex:1;display:grid;gap:4px}
+.inbox-row-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:12.5px;font-weight:750}
+.inbox-row-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:10px;line-height:1.35}
+.inbox-row-arrow{flex:none;color:var(--muted);font-size:23px;font-weight:300}
+.inbox-row-meta{flex:none;color:var(--heading-accent);font-size:9px;font-weight:750}
+.inbox-pinned-row{padding:9px 8px;border:1px solid var(--line);border-radius:15px;background:var(--surface);box-shadow:0 4px 14px #00000008}
+.inbox-pinned-row:active{background:var(--surface-2)}
+.inbox-local-tag{flex:none;padding:5px 7px;border:1px solid #8a7cdb45;border-radius:7px;background:#8a7cdb14;color:#9c91e9;font-size:8px;font-weight:800;letter-spacing:.7px}
+.inbox-empty{margin:10px 0;padding:20px 10px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:11px;line-height:1.55;text-align:center}
+.inbox-demo-note{margin:12px 2px 0;color:var(--muted);font-size:9px;line-height:1.55}
+.inbox-group-panel{margin-top:0;margin-bottom:16px}
+.inbox-group-panel>label input{background:var(--surface-2);color:var(--text);border-color:var(--line)}
+.inbox-fab{
+  position:fixed;z-index:15;right:22px;bottom:calc(env(safe-area-inset-bottom) + 96px);
+  width:56px;height:56px;display:grid;place-items:center;border:0;border-radius:50%;
+  background:linear-gradient(145deg,#796bd5,#5749b6);color:#fff;font-size:31px;font-weight:300;
+  box-shadow:0 9px 24px #30256a4a,0 2px 6px #0002;transition:transform .2s cubic-bezier(.2,1.4,.3,1),filter .2s
+}
+.inbox-fab:active{transform:scale(.91);filter:brightness(1.1)}
+:root[data-theme="light"] .inbox-sheet{background:#fff;border-color:#e8e7f0;box-shadow:0 -8px 26px #17103d0b}
+:root[data-theme="light"] .inbox-search{background:#f6f6fa;border-color:#e9e8f0}
+:root[data-theme="light"] .inbox-mode-switch{background:#f4f3f8;border-color:#e8e6ef}
+:root[data-theme="light"] .inbox-row{border-color:#efedf3}
+:root[data-theme="light"] .inbox-row-copy strong{color:#252334}
+:root[data-theme="light"] .inbox-row-copy small{color:#858397}
+:root[data-theme="light"] .inbox-pinned-row{background:#fff;border-color:#eceaf2;box-shadow:0 4px 14px #28204409}
+:root[data-theme="light"] .inbox-group-panel{background:linear-gradient(145deg,#f4f0ff,#fff);border-color:#dcd5fa}
+:root[data-theme="light"] .inbox-group-panel>label{color:#343047}
+:root[data-theme="light"] .inbox-group-panel>label input{background:#fff;color:#272537}
+@media(min-width:600px){
+  .content.inbox-content{max-width:640px;margin:0 auto;padding-bottom:120px}
+  .inbox-hero{border-radius:0 0 32px 32px;padding:30px 26px 50px}
+  .inbox-sheet{margin-top:-30px;padding:22px 22px 30px;border-radius:30px 30px 0 0}
+  .inbox-contacts-strip{gap:22px}
+  .inbox-fab{right:max(24px,calc((100vw - 640px)/2 + 22px))}
+}
+@media(max-width:390px){
+  .inbox-hero{padding-inline:16px}
+  .inbox-sheet{margin-inline:7px;padding-inline:12px}
+  .inbox-contacts-strip{gap:12px}
+  .inbox-mode-switch button{font-size:10px;padding-inline:5px}
+  .inbox-row{gap:9px}
+}
+@media(prefers-reduced-motion:reduce){
+  .inbox-row,.inbox-fab{transition:none!important}
+}
