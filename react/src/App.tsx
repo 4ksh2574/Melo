@@ -796,7 +796,7 @@ export default function App() {
         </div>}
       </div>}
     </section> : <>
-      <section className="content" key={tab}>
+      <section className={"content " + (tab === "chats" ? "inbox-content" : "")} key={tab}>
         {tab !== "chats" && <div className="heading">
           <div><small>MELO · {label.toUpperCase()}</small><h1>{tab === "home" ? "Your circle" : label}</h1></div>
           {tab === "home" && <div className="avatar">{initials(user?.displayName || "M")}</div>}
