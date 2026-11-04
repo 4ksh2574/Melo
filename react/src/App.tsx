@@ -357,9 +357,16 @@ export default function App() {
     setMediaTab("media");
     if (!active || !user) {
       setNickname("");
+      setDraft("");
       return;
     }
     setNickname(window.localStorage.getItem("melo-nickname:" + user.uid + ":" + active.id) || "");
+    try {
+      setDraft(window.localStorage.getItem("melo-draft:" + user.uid + ":" + active.id) || "");
+    } catch (error) {
+      console.warn("Saved message draft could not be read.", error);
+      setDraft("");
+    }
   }, [active?.id, user?.uid]);
 
   useEffect(() => {
@@ -630,6 +637,7 @@ export default function App() {
         id: "demo-user-" + Date.now(), source: "demo", uid: user.uid, text, createdAt: Date.now(),
       };
       setDemoMessages((current) => ({ ...current, [active.id]: [...(current[active.id] || []), sampleReply] }));
+      window.localStorage.removeItem("melo-draft:" + user.uid + ":" + active.id);
       setDraft("");
       return;
     }
@@ -643,6 +651,7 @@ export default function App() {
           ? { expiresAt: Timestamp.fromMillis(Date.now() + disappearingAfterSeconds * 1000) }
           : {}),
       });
+      window.localStorage.removeItem("melo-draft:" + user.uid + ":" + active.id);
       setDraft("");
     } catch (error) {
       console.error(error);
@@ -763,7 +772,19 @@ export default function App() {
         </div>}
         <form className="composer" autoComplete="off" onSubmit={sendMessage}>
           <button className="attach-button" type="button" aria-label="Add attachment" onClick={() => setAttachmentOpen((open) => !open)}>{attachmentOpen ? "×" : "+"}</button>
-          <input type="text" name="melo-chat-message" autoComplete="off" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} inputMode="text" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Message" maxLength={4000} />
+          <input type="text" name="melo-chat-message" autoComplete="off" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} inputMode="text" value={draft} onChange={(event) => {
+            const value = event.target.value;
+            setDraft(value);
+            if (user && active) {
+              const key = "melo-draft:" + user.uid + ":" + active.id;
+              try {
+                if (value) window.localStorage.setItem(key, value);
+                else window.localStorage.removeItem(key);
+              } catch (error) {
+                console.warn("Message draft could not be saved on this device.", error);
+              }
+            }
+          }} placeholder="Message" maxLength={4000} />
           <button className="send" disabled={busy || !draft.trim()} aria-label="Send message">↑</button>
         </form>
       </> : <div className="chat-subview">
