@@ -589,3 +589,75 @@ button::-moz-focus-inner { border: 0; }
 @media(prefers-reduced-motion:reduce){
   .inbox-row,.inbox-fab{transition:none!important}
 }
+
+
+/* Profile page based on the portrait-led reference, adapted for Melo. */
+.profile-content{width:min(100%,620px);padding:0 18px 130px}
+.profile-card.profile-page{
+  width:100%;margin:0;padding:0;text-align:left;
+  border:0;border-radius:0;background:transparent;box-shadow:none;
+  overflow:visible
+}
+.profile-cover{position:relative;width:100%;height:clamp(285px,54vh,430px);min-height:285px;overflow:hidden;border-radius:0 0 25px 25px;background:linear-gradient(145deg,#5547a9,#9b91d8)}
+.profile-cover-image{position:absolute;inset:0;display:grid;place-items:center;overflow:hidden}
+.profile-cover-image>img{width:100%;height:100%;display:block;object-fit:cover;object-position:center 32%}
+.profile-cover-fallback{width:100%;height:100%;display:grid;place-items:center;background:radial-gradient(circle at 50% 25%,#ffffff35,transparent 25%),linear-gradient(145deg,#6254bd,#9d92da);color:#fff;font:800 clamp(90px,26vw,170px) Manrope,sans-serif;letter-spacing:-8px}
+.profile-cover-overlay{position:absolute;inset:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:17px 16px;background:linear-gradient(180deg,#0006,transparent)}
+.profile-cover-overlay>span{color:#fff;font-size:9px;font-weight:800;letter-spacing:1.4px;text-shadow:0 1px 7px #0006}
+.profile-cover-overlay .profile-settings-button{border:1px solid #ffffff55;background:#1116;color:#fff;backdrop-filter:blur(12px)}
+.profile-identity{padding:21px 3px 23px}
+.profile-name-row{display:flex;align-items:center;gap:10px;min-width:0}
+.profile-name-row h1{margin:0;color:var(--text);font:800 clamp(23px,6vw,29px)/1.15 Manrope,sans-serif;letter-spacing:-.9px;overflow-wrap:anywhere}
+.profile-verified{width:21px;height:21px;flex:none;display:grid;place-items:center;border-radius:50%;background:#111;color:#fff;font-size:12px;font-weight:900;box-shadow:0 0 0 2px var(--page)}
+.profile-status{display:inline-block;margin-top:9px;color:var(--heading-accent);font-size:8px;font-weight:850;letter-spacing:1.4px}
+.profile-bio{max-width:440px;margin:13px 0 18px;color:var(--text-soft);font-size:14px;line-height:1.48}
+.profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:13px 0 16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.profile-stats>div{display:flex;align-items:baseline;gap:6px;min-width:0}
+.profile-stats strong{color:var(--text);font:800 19px Manrope,sans-serif}
+.profile-stats span{color:var(--muted);font-size:11px}
+.profile-edit-button{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:17px;padding:14px 18px;border:1px solid var(--line);border-radius:99px;background:var(--surface-2);color:var(--text);font-size:13px;font-weight:750;box-shadow:0 3px 9px #0000000a,inset 0 1px #ffffffa0;transition:transform .16s ease,background .16s ease}
+.profile-edit-button:active{transform:scale(.985);background:var(--surface)}
+.profile-edit-button span{color:var(--heading-accent);font-size:16px}
+.profile-circle{padding:2px 2px 0}
+.profile-section-heading{display:flex;align-items:center;justify-content:space-between;margin:0 0 14px}
+.profile-section-heading h2{margin:0;color:var(--text);font:750 18px Manrope,sans-serif}
+.profile-section-heading>span{color:var(--muted);font-size:10px}
+.profile-circle-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.profile-circle-person{min-width:0;display:grid;justify-items:center;gap:5px;padding:12px 4px;border:1px solid var(--line);border-radius:17px;background:var(--surface)}
+.profile-circle-avatar{width:48px;height:48px;margin-bottom:2px;background:linear-gradient(145deg,#dfd8ff,#b7aedc);color:#403774;font-size:15px;overflow:hidden}
+.profile-circle-person strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:10px}
+.profile-circle-person small{color:var(--muted);font-size:9px}
+.profile-page.profile-settings-view{padding:23px 0 35px}
+.profile-photo-settings{margin-top:18px}
+.profile-photo-setting-preview{display:flex;align-items:center;gap:12px;margin:17px 0 18px}
+.profile-photo-preview{width:58px;height:58px;overflow:hidden;background:linear-gradient(145deg,#6254bd,#9d92da);color:#fff;font-size:19px}
+.profile-photo-setting-preview>div{display:grid;gap:4px;min-width:0}
+.profile-photo-setting-preview strong{color:var(--text);font-size:13px}
+.profile-photo-setting-preview small{color:var(--muted);font-size:10px}
+.profile-photo-label{display:block;margin:0 0 7px 2px;color:var(--heading-accent);font-size:11px;font-weight:750}
+.profile-photo-input{width:100%;height:45px;padding:0 13px;border:1px solid var(--line);border-radius:13px;outline:none;background:var(--surface-2);color:var(--text);font:12px "DM Sans",sans-serif}
+.profile-photo-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px #20ad9b20}
+.profile-photo-settings>p{margin:9px 1px 13px;color:var(--muted);font-size:10px;line-height:1.55}
+.profile-photo-actions{display:flex;gap:8px}
+.profile-photo-actions button{flex:1;padding:12px;border-radius:13px;font-size:11px}
+.profile-photo-actions .secondary{width:auto;margin:0;background:var(--surface-2);color:var(--text)}
+.profile-settings-head{margin-bottom:14px}
+:root[data-theme="light"] .profile-cover{background:linear-gradient(145deg,#e4defc,#b8adea)}
+:root[data-theme="light"] .profile-cover-fallback{background:radial-gradient(circle at 50% 25%,#ffffff70,transparent 25%),linear-gradient(145deg,#6254bd,#9d92da)}
+:root[data-theme="light"] .profile-name-row h1{color:#171722}
+:root[data-theme="light"] .profile-bio{color:#555363}
+:root[data-theme="light"] .profile-verified{background:#171722;color:#fff;box-shadow:0 0 0 2px #fff}
+:root[data-theme="light"] .profile-circle-person{background:#fff;border-color:#eae8f0;box-shadow:0 4px 15px #29204408}
+:root[data-theme="light"] .profile-edit-button{background:#f5f5f7;border-color:#e8e7ed;color:#242331;box-shadow:0 3px 9px #0000000a,inset 0 1px #fff}
+:root[data-theme="light"] .profile-photo-input{background:#f5f6f8;border-color:#e8e7ee;color:#222}
+@media(max-width:390px){
+  .profile-content{padding-inline:14px}
+  .profile-cover{height:clamp(270px,48vh,370px);min-height:270px}
+  .profile-circle-grid{gap:6px}
+  .profile-circle-person{padding:10px 2px}
+  .profile-circle-avatar{width:43px;height:43px}
+  .profile-bio{font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  .profile-edit-button{transition:none!important}
+}
