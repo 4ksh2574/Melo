@@ -557,12 +557,15 @@ export default function App() {
   }
 
   function toggleRoutineItem(id: string) {
-    setRoutineItems((current) => current.map((item) => ({
-      ...item,
-      doneDates: item.doneDates.includes(todayKey)
-        ? item.doneDates.filter((date) => date !== todayKey)
-        : [...item.doneDates, todayKey],
-    })));
+    setRoutineItems((current) => current.map((item) => {
+      if (item.id !== id) return item;
+      return {
+        ...item,
+        doneDates: item.doneDates.includes(todayKey)
+          ? item.doneDates.filter((date) => date !== todayKey)
+          : [...item.doneDates, todayKey],
+      };
+    }));
   }
 
   const plannerMonthDays = (() => {
