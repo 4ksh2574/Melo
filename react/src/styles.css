@@ -997,3 +997,10 @@ button::-moz-focus-inner { border: 0; }
   .planner-routine-manage{flex-wrap:wrap}
   .planner-routine-manage .planner-routine-copy{min-width:calc(100% - 45px)}
 }
+
+/* Indian public holiday markers */
+.planner-calendar-dots .holiday-dot,.planner-calendar-legend .holiday-dot{background:#d8a75e}
+.planner-google-event.planner-holiday-event{border-color:#d8a75e45;background:#d8a75e0c}
+.planner-google-event.planner-holiday-event .planner-google-event-time{color:#e3bd7f}
+:root[data-theme="light"] .planner-google-event.planner-holiday-event{background:#fbf3e6;border-color:#eed9b6}
+:root[data-theme="light"] .planner-google-event.planner-holiday-event .planner-google-event-time{color:#91672c}
