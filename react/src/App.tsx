@@ -729,7 +729,7 @@ export default function App() {
     try {
       const client = oauth.initTokenClient({
         client_id: googleCalendarClientId,
-        scope: "https://www.googleapis.com/auth/calendar.events",
+        scope: "https://www.googleapis.com/auth/calendar.events.owned",
         callback: (response) => {
           if (!response.access_token || response.error) {
             setNotice(response.error_description || "Google Calendar access was not granted.");
