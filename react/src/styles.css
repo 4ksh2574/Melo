@@ -892,3 +892,108 @@ button::-moz-focus-inner { border: 0; }
 :root[data-theme="light"] .planner-empty strong{color:#272c34}
 :root[data-theme="light"] .planner-empty small,:root[data-theme="light"] .planner-helper-note{color:#747d89}
 @media(max-width:380px){.planner-welcome{padding:19px 16px}.planner-welcome h2{font-size:34px}.planner-welcome-stats{gap:12px}.planner-subnav button small{font-size:8px}.planner-greeting-row h3{font-size:18px}.planner-form-grid{grid-template-columns:1fr}.planner-form-bottom label{width:40%}}
+
+
+/* Study Space calendar and routine builder — AX graphite glass */
+.planner-google-panel{
+  display:grid;gap:10px;padding:14px 15px;border:1px solid #ffffff1a;border-radius:19px;
+  background:linear-gradient(130deg,#242a32,#12161c);box-shadow:inset 0 1px #ffffff12;
+}
+.planner-google-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.planner-google-mark{width:34px;height:34px;display:grid;place-items:center;flex:none;border:1px solid #ffffff35;border-radius:11px;background:#ffffff10;color:#f1f3f5;font:800 17px Manrope,sans-serif}
+.planner-google-brand>span:last-child{display:grid;gap:3px;min-width:0}
+.planner-google-brand strong{color:#f2f4f7;font-size:12px}
+.planner-google-brand small,.planner-google-help{color:#9ca5b1;font-size:9px;line-height:1.5}
+.planner-google-actions{display:flex;gap:7px;flex-wrap:wrap}
+.planner-google-actions button{padding:9px 12px;border:1px solid #ffffff45;border-radius:11px;background:linear-gradient(145deg,#eceef0,#b8bec7);color:#15191f;font-size:10px;font-weight:800}
+.planner-google-actions button.subtle{background:#ffffff09;color:#cdd2da;border-color:#ffffff20}
+.planner-google-help b{color:#dce0e6}
+.planner-calendar-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.planner-calendar-heading>span{display:grid;gap:4px}
+.planner-calendar-heading small,.planner-agenda-head small{color:#929ba7;font-size:8px;font-weight:800;letter-spacing:1.5px}
+.planner-calendar-heading strong{color:#f1f3f6;font:700 19px Manrope,sans-serif}
+.planner-calendar-heading>button{padding:8px 12px;border:1px solid #ffffff22;border-radius:999px;background:#ffffff0b;color:#e4e7eb;font-size:10px;font-weight:700}
+.planner-calendar-top{gap:8px}
+.planner-calendar-top span{color:#9ba4af;font-size:9px}
+.planner-calendar-grid{gap:6px}
+.planner-calendar-grid>small{font-size:8px;letter-spacing:.5px}
+.planner-calendar-grid>button{
+  aspect-ratio:1/1.1;align-content:start;justify-items:center;gap:5px;padding:7px 2px 4px;
+  border:1px solid #ffffff0b;border-radius:13px;background:#ffffff04;color:#e2e6eb;font-size:11px;
+  transition:background .16s,border-color .16s,transform .16s;
+}
+.planner-calendar-grid>button:active{transform:scale(.96)}
+.planner-calendar-day-number{font-weight:700}
+.planner-calendar-grid>button.today{border-color:#aeb6c0;background:#ffffff0a}
+.planner-calendar-grid>button.selected{border-color:#f0f1f3;background:linear-gradient(145deg,#e9ebee,#aeb5bf);color:#14171c}
+.planner-calendar-dots{display:flex;align-items:center;justify-content:center;gap:3px;min-height:5px}
+.planner-calendar-dots i,.planner-calendar-legend i{width:4px;height:4px;display:inline-block;border-radius:50%}
+.planner-calendar-dots .task-dot,.planner-calendar-legend .task-dot{background:#d9dce1}
+.planner-calendar-dots .google-dot,.planner-calendar-legend .google-dot{background:#8daee6}
+.planner-calendar-dots .routine-dot,.planner-calendar-legend .routine-dot{background:#c6ab71}
+.planner-calendar-grid>button.selected .planner-calendar-dots i{box-shadow:0 0 0 1px #252a32}
+.planner-calendar-legend{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:13px;color:#9da6b1;font-size:8px}
+.planner-calendar-legend span{display:flex;align-items:center;gap:5px}
+.planner-calendar-legend i{width:6px;height:6px}
+.planner-agenda-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 0}
+.planner-agenda-head>div{display:grid;gap:4px}
+.planner-agenda-head h3{margin:0;color:#f0f2f5;font:700 17px Manrope,sans-serif}
+.planner-agenda-head>button{padding:9px 12px;border:1px solid #ffffff42;border-radius:11px;background:linear-gradient(145deg,#e8eaed,#b6bdc6);color:#15191f;font-size:10px;font-weight:800}
+.planner-agenda-section{display:grid;gap:9px}
+.planner-google-event{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #8daee62b;border-radius:15px;background:#8daee60c}
+.planner-google-event-time{flex:none;min-width:52px;color:#a9c4ef;font-size:9px;font-weight:800}
+.planner-google-event>div{display:grid;gap:4px;min-width:0;flex:1}
+.planner-google-event strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#edf0f4;font-size:11px}
+.planner-google-event small{color:#91a0b5;font-size:9px}
+.planner-google-event a{color:#b7cbed;font-size:9px;text-decoration:none}
+.planner-google-mini{flex:none;padding:6px 8px;border:1px solid #ffffff28;border-radius:9px;background:#ffffff0b;color:#cbd2dc;font-size:8px;font-weight:700}
+.planner-empty-compact{padding:16px}
+.planner-routine-form{display:grid;gap:12px;padding:15px;border:1px solid #ffffff20;border-radius:19px;background:linear-gradient(145deg,#222831,#11151a);box-shadow:inset 0 1px #ffffff10}
+.planner-routine-form-heading{display:grid;gap:4px}
+.planner-routine-form-heading strong{color:#f0f2f5;font:700 14px Manrope}
+.planner-routine-form-heading small{color:#9ca5b1;font-size:9px}
+.planner-routine-form>label{display:grid;gap:6px;color:#aab2bd;font-size:9px;font-weight:700}
+.planner-routine-form input:not([type="checkbox"]){width:100%;padding:11px 10px;border:1px solid #ffffff20;border-radius:11px;outline:none;background:#080b0f;color:#f1f3f5;font-size:11px}
+.planner-routine-form fieldset{margin:0;padding:0;border:0}
+.planner-routine-form legend{margin-bottom:8px;color:#aab2bd;font-size:9px;font-weight:700}
+.planner-weekday-picker{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.planner-weekday-picker label{display:grid;justify-items:center;gap:5px;padding:8px 2px;border:1px solid #ffffff17;border-radius:10px;background:#ffffff06;color:#aab2bd;font-size:8px}
+.planner-weekday-picker label.picked{border-color:#ffffff58;background:#ffffff19;color:#f0f2f5}
+.planner-weekday-picker input{width:12px;height:12px;margin:0;accent-color:#d7dbe0}
+.planner-routine-form-actions{display:flex;justify-content:flex-end;gap:8px}
+.planner-routine-form-actions button{padding:10px 13px;border-radius:10px;font-size:10px;font-weight:800}
+.planner-routine-cancel{border:1px solid #ffffff20;background:#ffffff08;color:#ccd2da}
+.planner-routine-row.planner-routine-manage{display:flex;gap:8px;align-items:center}
+.planner-routine-copy{display:grid;gap:4px;min-width:0;flex:1}
+.planner-routine-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#edf0f3;font-size:11px}
+.planner-routine-copy small{color:#929ba7;font-size:9px}
+.planner-routine-manage>b{flex:none;color:#aeb6c0;font-size:8px;font-weight:700}
+.planner-routine-manage .planner-routine-check{cursor:pointer}
+.planner-routine-manage .planner-routine-check:disabled{opacity:.3;cursor:default}
+.planner-routine-edit,.planner-routine-remove{flex:none;padding:6px;border:1px solid #ffffff18;border-radius:8px;background:#ffffff08;color:#cbd1da;font-size:9px}
+.planner-routine-remove{width:25px;height:25px;padding:0;font-size:16px}
+.planner-agenda-routine{display:flex;align-items:center;gap:10px}
+.planner-agenda-routine .planner-routine-copy{flex:1}
+:root[data-theme="light"] .planner-google-panel,:root[data-theme="light"] .planner-routine-form{background:linear-gradient(145deg,#f5f6f7,#e9ebee);border-color:#dfe2e6}
+:root[data-theme="light"] .planner-google-brand strong,:root[data-theme="light"] .planner-calendar-heading strong,:root[data-theme="light"] .planner-agenda-head h3,:root[data-theme="light"] .planner-routine-form-heading strong,:root[data-theme="light"] .planner-routine-copy strong{color:#20242b}
+:root[data-theme="light"] .planner-google-brand small,:root[data-theme="light"] .planner-google-help,:root[data-theme="light"] .planner-calendar-top span,:root[data-theme="light"] .planner-calendar-heading small,:root[data-theme="light"] .planner-agenda-head small,:root[data-theme="light"] .planner-routine-form-heading small{color:#737d89}
+:root[data-theme="light"] .planner-google-actions button.subtle,:root[data-theme="light"] .planner-calendar-heading>button,:root[data-theme="light"] .planner-routine-cancel{background:#fff;color:#424a55;border-color:#dfe2e7}
+:root[data-theme="light"] .planner-calendar-grid>button{background:#fff;border-color:#e6e8ec;color:#333944}
+:root[data-theme="light"] .planner-calendar-grid>button.selected{background:linear-gradient(145deg,#292e36,#080b10);color:#fff;border-color:#292e36}
+:root[data-theme="light"] .planner-google-event{background:#eaf1fb;border-color:#d8e4f5}
+:root[data-theme="light"] .planner-google-event strong{color:#27364a}
+:root[data-theme="light"] .planner-google-event small{color:#64748b}
+:root[data-theme="light"] .planner-google-event-time,:root[data-theme="light"] .planner-google-event a{color:#456b9e}
+:root[data-theme="light"] .planner-google-mini,:root[data-theme="light"] .planner-routine-edit,:root[data-theme="light"] .planner-routine-remove{background:#fff;color:#46505d;border-color:#dfe2e7}
+:root[data-theme="light"] .planner-routine-form>label,:root[data-theme="light"] .planner-routine-form legend{color:#596371}
+:root[data-theme="light"] .planner-routine-form input:not([type="checkbox"]){background:#fff;color:#20242b;border-color:#dfe2e7}
+:root[data-theme="light"] .planner-weekday-picker label{background:#fff;color:#68717d;border-color:#e0e3e8}
+:root[data-theme="light"] .planner-weekday-picker label.picked{background:#252a32;color:#fff;border-color:#252a32}
+:root[data-theme="light"] .planner-routine-copy small{color:#747d89}
+@media(max-width:380px){
+  .planner-calendar-grid{gap:3px}
+  .planner-calendar-grid>button{border-radius:10px;padding:6px 1px 4px}
+  .planner-calendar-legend{gap:8px}
+  .planner-routine-manage{flex-wrap:wrap}
+  .planner-routine-manage .planner-routine-copy{min-width:calc(100% - 45px)}
+}
