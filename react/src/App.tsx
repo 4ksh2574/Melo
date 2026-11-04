@@ -763,7 +763,7 @@ export default function App() {
         </div>}
         <form className="composer" onSubmit={sendMessage}>
           <button className="attach-button" type="button" aria-label="Add attachment" onClick={() => setAttachmentOpen((open) => !open)}>{attachmentOpen ? "×" : "+"}</button>
-          <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Message" maxLength={4000} />
+          <input name="melo-message-body" type="text" autoComplete="off" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Message" maxLength={4000} />
           <button className="send" disabled={busy || !draft.trim()} aria-label="Send message">↑</button>
         </form>
       </> : <div className="chat-subview">
