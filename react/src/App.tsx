@@ -168,6 +168,8 @@ export default function App() {
   const [groupPanel, setGroupPanel] = useState(false);
   const [groupTitle, setGroupTitle] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [inboxMode, setInboxMode] = useState<"direct" | "group">("direct");
+  const [inboxSearch, setInboxSearch] = useState("");
 
   useEffect(() => {
     const root = document.documentElement;
@@ -795,10 +797,10 @@ export default function App() {
       </div>}
     </section> : <>
       <section className="content" key={tab}>
-        <div className="heading">
+        {tab !== "chats" && <div className="heading">
           <div><small>MELO · {label.toUpperCase()}</small><h1>{tab === "home" ? "Your circle" : label}</h1></div>
           {tab === "home" && <div className="avatar">{initials(user?.displayName || "M")}</div>}
-        </div>
+        </div>}
 
         {tab === "home" && <>
           <div className="people-strip">
@@ -810,53 +812,141 @@ export default function App() {
         </>}
 
         {tab === "chats" && <>
-          <div className="chat-toolbar">
-            <div className="chat-toolbar-copy"><small>PRIVATE INBOX</small><span>{inbox.filter((item) => item.id !== "the-four").length + (fourReady ? 1 : 0)} conversations</span></div>
-            <button className="primary compact" onClick={() => setGroupPanel((open) => !open)}>＋ New group</button>
-          </div>
-          {groupPanel && <form className="group-panel" onSubmit={createGroup}>
-            <label>Group name<input value={groupTitle} onChange={(event) => setGroupTitle(event.target.value)} placeholder="e.g. Weekend plans" maxLength={40} required /></label>
-            <div className="group-panel-label">Choose 1–3 friends <span>{selectedMembers.length}/3</span></div>
-            <div className="group-picks">{ordered.map((member) => <label className="group-pick" key={member.uid}>
-              <input type="checkbox" checked={selectedMembers.includes(member.uid)}
-                disabled={!selectedMembers.includes(member.uid) && selectedMembers.length >= 3}
-                onChange={(event) => setSelectedMembers((current) => event.target.checked
-                  ? [...current, member.uid] : current.filter((id) => id !== member.uid))} />
-              <span className="avatar">{initials(nameOf(member))}</span><span>{nameOf(member)}</span>
-            </label>)}</div>
-            <div className="group-panel-buttons"><button type="button" className="secondary" onClick={() => setGroupPanel(false)}>Cancel</button>
-              <button type="submit" className="primary" disabled={busy || selectedMembers.length < 1 || selectedMembers.length > 3}>Create group</button></div>
-          </form>}
-          {fourReady && <>
-            <div className="section-kicker">PINNED</div>
-            <button className="chat-row pinned-chat" onClick={() => openConversation({ id: "the-four", type: "group", title: "The Four", memberIds: [user!.uid, ...members.map((member) => member.uid)] })}>
-              <div className="avatar group-avatar">✳</div><div className="member-info"><strong>The Four</strong><small>All four of you · Permanent group</small></div><span className="arrow">›</span>
-            </button>
-          </>}
-          {demoReady && demoConversations.length > 0 && <>
-            <div className="section-kicker demo-kicker">SAMPLE CHATS <span>LOCAL · 14 DAYS</span></div>
-            <div className="member-list demo-list">
-              {demoConversations.map((conversation) => {
+          <section className="inbox-hero">
+            <div className="inbox-hero-top">
+              <div className="inbox-hero-copy">
+                <small>MELO · YOUR PRIVATE CIRCLE</small>
+                <h1>Good to see you, {(user?.displayName || "there").split(" ")[0]}.</h1>
+                <p>Your people, one message away.</p>
+              </div>
+              <div className="inbox-hero-mark" aria-hidden="true"><span>✳</span></div>
+            </div>
+            <div className="inbox-contacts-heading">
+              <span>CONTACT LIST</span><small>{members.length + 1} members</small>
+            </div>
+            <div className="inbox-contacts-strip">
+              <div className="inbox-contact inbox-contact-you">
+                <span className="avatar inbox-contact-avatar own">
+                  {user?.photoURL ? <img src={user.photoURL} alt="" /> : initials(user?.displayName || "M")}
+                </span>
+                <small>You</small>
+              </div>
+              {ordered.map((member) => <button className="inbox-contact" key={member.uid} onClick={() => openDirect(member)}>
+                <span className="avatar inbox-contact-avatar">
+                  {member.photoURL ? <img src={member.photoURL} alt="" /> : initials(nameOf(member))}
+                </span>
+                <small>{nameOf(member).split(" ")[0]}</small>
+              </button>)}
+            </div>
+          </section>
+
+          <section className="inbox-sheet">
+            <div className="inbox-search">
+              <span aria-hidden="true">⌕</span>
+              <input value={inboxSearch} onChange={(event) => setInboxSearch(event.target.value)}
+                placeholder="Search conversations or people…" aria-label="Search conversations or people" />
+              {inboxSearch && <button type="button" onClick={() => setInboxSearch("")} aria-label="Clear search">×</button>}
+            </div>
+
+            <div className="inbox-mode-switch" role="tablist" aria-label="Conversation type">
+              <button type="button" role="tab" aria-selected={inboxMode === "direct"}
+                className={inboxMode === "direct" ? "active" : ""}
+                onClick={() => setInboxMode("direct")}>
+                Direct Message <span>{inbox.filter((item) => item.type === "direct").length + demoConversations.filter((item) => item.type === "direct").length}</span>
+              </button>
+              <button type="button" role="tab" aria-selected={inboxMode === "group"}
+                className={inboxMode === "group" ? "active" : ""}
+                onClick={() => setInboxMode("group")}>
+                Groups <span>{inbox.filter((item) => item.type === "group").length + demoConversations.filter((item) => item.type === "group").length}</span>
+              </button>
+            </div>
+
+            {groupPanel && <form className="group-panel inbox-group-panel" onSubmit={createGroup}>
+              <label>Group name<input value={groupTitle} onChange={(event) => setGroupTitle(event.target.value)} placeholder="e.g. Weekend plans" maxLength={40} required /></label>
+              <div className="group-panel-label">Choose 1–3 friends <span>{selectedMembers.length}/3</span></div>
+              <div className="group-picks">{ordered.map((member) => <label className="group-pick" key={member.uid}>
+                <input type="checkbox" checked={selectedMembers.includes(member.uid)}
+                  disabled={!selectedMembers.includes(member.uid) && selectedMembers.length >= 3}
+                  onChange={(event) => setSelectedMembers((current) => event.target.checked
+                    ? [...current, member.uid] : current.filter((id) => id !== member.uid))} />
+                <span className="avatar">{member.photoURL ? <img src={member.photoURL} alt="" /> : initials(nameOf(member))}</span><span>{nameOf(member)}</span>
+              </label>)}</div>
+              <div className="group-panel-buttons">
+                <button type="button" className="secondary" onClick={() => setGroupPanel(false)}>Cancel</button>
+                <button type="submit" className="primary" disabled={busy || selectedMembers.length < 1 || selectedMembers.length > 3}>Create group</button>
+              </div>
+            </form>}
+
+            {fourReady && (inboxSearch.trim() === "" || "the four".includes(inboxSearch.trim().toLowerCase())) && <>
+              <div className="inbox-section-title"><span>Pinned Message</span><small>1</small></div>
+              <button className="inbox-row inbox-pinned-row" onClick={() => openConversation({
+                id: "the-four", type: "group", title: "The Four",
+                memberIds: [user!.uid, ...members.map((member) => member.uid)],
+              })}>
+                <div className="avatar inbox-row-avatar group-avatar">✳</div>
+                <div className="inbox-row-copy"><strong>The Four</strong><small>All four of you · Permanent group</small></div>
+                <span className="inbox-row-meta">Pinned</span>
+              </button>
+            </>}
+
+            <div className="inbox-section-title">
+              <span>{inboxMode === "direct" ? "All Messages" : "All Groups"}</span>
+              <small>{inbox.filter((item) => item.id !== "the-four" && item.type === inboxMode
+                && titleOf(item).toLowerCase().includes(inboxSearch.trim().toLowerCase())).length
+                + demoConversations.filter((item) => item.type === inboxMode
+                  && titleOf(item).toLowerCase().includes(inboxSearch.trim().toLowerCase())).length}</small>
+            </div>
+
+            <div className="inbox-list">
+              {inbox.filter((conversation) => conversation.id !== "the-four"
+                && conversation.type === inboxMode
+                && titleOf(conversation).toLowerCase().includes(inboxSearch.trim().toLowerCase()))
+                .map((conversation) => <button className="inbox-row" key={conversation.id} onClick={() => openConversation(conversation)}>
+                  <div className={"avatar inbox-row-avatar " + (conversation.type === "group" ? "group-avatar" : "")}>
+                    {conversation.type === "group" ? "✳" : initials(titleOf(conversation))}
+                  </div>
+                  <div className="inbox-row-copy">
+                    <strong>{titleOf(conversation)}</strong>
+                    <small>{conversation.type === "group"
+                      ? conversation.memberIds.length + " members · Private group"
+                      : "Private direct message"}</small>
+                  </div>
+                  <span className="inbox-row-arrow">›</span>
+                </button>)}
+
+              {demoReady && demoConversations.filter((conversation) => conversation.type === inboxMode
+                && titleOf(conversation).toLowerCase().includes(inboxSearch.trim().toLowerCase())).map((conversation) => {
                 const sampleMessages = demoMessages[conversation.id] || [];
                 const latest = sampleMessages[sampleMessages.length - 1];
-                return <button className="chat-row demo-chat-row" key={conversation.id} onClick={() => openConversation(conversation)}>
-                  <div className={"avatar " + (conversation.type === "group" ? "group-avatar" : "")}>{conversation.type === "group" ? "✳" : initials(titleOf(conversation))}</div>
-                  <div className="member-info"><strong>{titleOf(conversation)}</strong><small>{latest ? (latest.uid === user?.uid ? "You: " : "") + latest.text : "Sample conversation"}</small></div>
-                  <span className="demo-tag">DEMO</span>
+                return <button className="inbox-row" key={conversation.id} onClick={() => openConversation(conversation)}>
+                  <div className={"avatar inbox-row-avatar " + (conversation.type === "group" ? "group-avatar" : "")}>
+                    {conversation.type === "group" ? "✳" : initials(titleOf(conversation))}
+                  </div>
+                  <div className="inbox-row-copy">
+                    <strong>{titleOf(conversation)}</strong>
+                    <small>{latest ? (latest.uid === user?.uid ? "You: " : "") + latest.text : "Sample conversation"}</small>
+                  </div>
+                  <span className="inbox-local-tag">LOCAL</span>
                 </button>;
               })}
+              {!inbox.some((item) => item.id !== "the-four" && item.type === inboxMode
+                && titleOf(item).toLowerCase().includes(inboxSearch.trim().toLowerCase()))
+                && !demoConversations.some((item) => item.type === inboxMode
+                  && titleOf(item).toLowerCase().includes(inboxSearch.trim().toLowerCase()))
+                && !(inboxMode === "group" && fourReady && ("the four".includes(inboxSearch.trim().toLowerCase())))
+                && <p className="inbox-empty">{inboxSearch.trim()
+                  ? "No matches found. Try another name."
+                  : inboxMode === "direct"
+                    ? "No direct messages yet. Choose a contact above to start one."
+                    : "No groups yet. Create a group for your circle."}</p>}
             </div>
-            <p className="demo-footnote">Only on this device. Sample chats and your test replies reset after 14 days; nothing is sent to real members.</p>
-          </>}
-          <div className="section-kicker recent-kicker">RECENT CONVERSATIONS</div>
-          <div className="member-list">
-            {inbox.filter((item) => item.id !== "the-four").map((conversation) => <button className="chat-row" key={conversation.id} onClick={() => openConversation(conversation)}>
-              <div className="avatar">{conversation.type === "group" ? "✳" : initials(titleOf(conversation))}</div>
-              <div className="member-info"><strong>{titleOf(conversation)}</strong><small>{conversation.type === "group" ? conversation.memberIds.length + " members · Group" : "Private direct message"}</small></div>
-              <span className="arrow">›</span>
-            </button>)}
-            {!inbox.some((item) => item.id !== "the-four") && <p className="empty">Your private chats and groups will appear here.</p>}
-          </div>
+            {demoReady && <p className="inbox-demo-note">Sample conversations are saved only on this device and are never sent to real members.</p>}
+          </section>
+
+          <button className="inbox-fab" type="button" aria-label="Create a group"
+            onClick={() => { setInboxMode("group"); setGroupPanel((open) => !open); }}>
+            {groupPanel ? "×" : "+"}
+          </button>
         </>}
 
         {tab === "profile" && <div className="profile-card">
