@@ -690,11 +690,11 @@ export default function App() {
 
     {active ? <section className="conversation">
       {chatPanel === "chat" ? <>
-        <header className="conversation-head conversation-head-centered">
+        <header className="conversation-head">
           <button className="back chat-back" onClick={() => setActive(null)} aria-label="Back to chats">‹</button>
-          <button className="chat-person-trigger chat-person-centered" onClick={() => setChatPanel("details")} aria-label="Conversation details">
+          <button className="chat-person-trigger" onClick={() => setChatPanel("details")} aria-label="Conversation details">
             <span className={"avatar chat-header-avatar " + (active.type === "group" ? "group-avatar" : "")}>{active.type === "group" ? "✳" : initials(titleOf(active))}</span>
-            <span className="conversation-title"><strong>{titleOf(active)}</strong><small>{active.demo ? "Sample · This device only" : active.type === "group" ? active.memberIds.length + " members" : "Private conversation"}</small></span>
+            <span className="conversation-title"><strong>{titleOf(active)}</strong><small>{active.demo ? "Sample · This device only" : active.type === "group" ? active.memberIds.length + " members · Private group" : "Private conversation"}</small></span>
           </button>
           <button className="chat-more" onClick={() => setChatPanel("details")} aria-label="Conversation info">···</button>
         </header>
