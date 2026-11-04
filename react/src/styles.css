@@ -335,3 +335,156 @@ button::-moz-focus-inner { border: 0; }
   .content,.chat-subview,.message-enter{animation:none!important}
   .dock-indicator,.dock button,.bubble,.send,.details-actions button,.profile-settings-button,.duration-list button{transition:none!important}
 }
+
+
+/* WhatsApp-inspired conversation surface, adapted to Melo's teal identity. */
+.conversation{
+  background:#050505;
+  padding-bottom:max(env(safe-area-inset-bottom),0px);
+}
+.conversation-head{
+  height:66px;
+  flex:none;
+  gap:9px;
+  padding:0 12px;
+  background:#080808;
+  border-bottom:1px solid #ffffff0d;
+}
+.chat-back{
+  width:36px;height:36px;display:grid;place-items:center;flex:none;
+  border-radius:50%;background:#ffffff0b;color:#f5f7f6;
+  font-size:27px;line-height:1;
+}
+.chat-person-trigger{gap:10px}
+.chat-header-avatar{
+  width:38px!important;height:38px!important;flex:none;
+  border:1px solid #ffffff18;
+  background:#171b1a;
+  color:#d9e5e1;
+  font-size:13px;
+}
+.chat-header-avatar.group-avatar{background:#123c35;color:#a9eee2}
+.conversation-title{display:grid;gap:3px;min-width:0}
+.conversation-title strong{
+  color:#f4f7f5;font-size:14px;font-weight:650;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.conversation-title small{font-size:10px;color:#929b97}
+.chat-more{
+  width:36px;height:36px;border:0;border-radius:50%;
+  background:#ffffff0b;color:#e8efec;font-size:20px;
+  letter-spacing:0;line-height:1;
+}
+.messages{
+  padding:15px 13px 17px;
+  gap:7px;
+  background:#050505;
+  scroll-behavior:smooth;
+}
+.message-wrap{gap:3px}
+.message-sender{
+  padding:0 9px;
+  color:#8bd8cc;
+  font-size:10px;
+  font-weight:650;
+}
+.message-wrap .bubble{
+  max-width:min(84vw,520px);
+  padding:8px 11px;
+  border:1px solid #ffffff09;
+  border-radius:16px 16px 16px 5px;
+  background:#202321;
+  color:#f0f3f1;
+  font-size:13px;
+  line-height:1.42;
+  box-shadow:none;
+}
+.message-wrap .bubble.mine{
+  border-color:#176b60;
+  border-radius:16px 16px 5px 16px;
+  background:#087e70;
+  color:#f7fffd;
+}
+.expiry-banner{
+  flex:none;
+  border-top:1px solid #ffffff0d;
+  background:#101211;
+  color:#a7b4ae;
+}
+.composer{
+  position:relative;
+  flex:none;
+  align-items:center;
+  gap:8px;
+  padding:9px 11px max(10px,env(safe-area-inset-bottom));
+  border:0;
+  background:#080808;
+}
+.attach-button{
+  width:38px;height:38px;flex:none;
+  display:grid;place-items:center;
+  border:1px solid #ffffff16;border-radius:50%;
+  background:#1b1e1d;color:#d9e4df;
+  font-size:25px;font-weight:300;line-height:1;
+  transition:transform .16s ease,background .16s ease;
+}
+.attach-button:active{transform:scale(.92);background:#25312d}
+.composer input{
+  min-width:0;height:40px;flex:1;
+  padding:0 15px;
+  border:1px solid #ffffff13;border-radius:22px;
+  background:#1b1e1d;color:#f4f7f5;
+  font-size:13px;
+}
+.composer input::placeholder{color:#89938e}
+.send{
+  width:39px;height:39px;flex:none;
+  border:0;border-radius:50%;
+  background:#087e70;color:white;
+  font-size:19px;
+  box-shadow:none;
+}
+.send:disabled{opacity:.38}
+.attachment-sheet{
+  position:absolute;z-index:35;left:12px;bottom:68px;
+  width:min(220px,calc(100vw - 40px));
+  display:grid;grid-template-columns:1fr 1fr;gap:5px;
+  padding:10px;
+  border:1px solid #ffffff16;border-radius:19px;
+  background:#191c1b;
+  box-shadow:0 12px 36px #0009;
+  animation:attachIn .16s ease-out both;
+}
+.attachment-sheet button{
+  min-height:66px;display:grid;justify-items:center;align-content:center;gap:6px;
+  border:0;border-radius:12px;background:#ffffff08;
+  color:#e5ebe8;font-size:11px;
+}
+.attachment-sheet button:active{background:#ffffff16}
+.attachment-sheet button span{
+  width:30px;height:30px;display:grid;place-items:center;
+  border-radius:50%;background:#087e7030;color:#8be1d3;
+  font-size:15px;font-weight:700;
+}
+@keyframes attachIn{from{opacity:0;transform:translateY(7px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:430px){
+  .conversation-head{height:62px;padding-inline:10px}
+  .messages{padding-inline:11px}
+  .composer{padding-inline:9px}
+}
+:root[data-theme="light"] .conversation{background:#f6f8f7}
+:root[data-theme="light"] .conversation-head,
+:root[data-theme="light"] .composer{background:#f8faf9;border-color:#e4eae7}
+:root[data-theme="light"] .chat-back,
+:root[data-theme="light"] .chat-more{background:#e9efec;color:#24332d}
+:root[data-theme="light"] .conversation-title strong{color:#17221d}
+:root[data-theme="light"] .conversation-title small{color:#718079}
+:root[data-theme="light"] .chat-header-avatar{background:#e4eeea;color:#21453b}
+:root[data-theme="light"] .messages{background:#f3f6f4}
+:root[data-theme="light"] .message-wrap .bubble{background:#ffffff;border-color:#e1e8e4;color:#1e2b25}
+:root[data-theme="light"] .message-wrap .bubble.mine{background:#087e70;border-color:#087e70;color:#ffffff}
+:root[data-theme="light"] .composer input{background:#ffffff;border-color:#e0e7e3;color:#17221d}
+:root[data-theme="light"] .attach-button{background:#e9efec;border-color:#dce5e0;color:#34443c}
+:root[data-theme="light"] .attachment-sheet{background:#ffffff;border-color:#dce5e0;box-shadow:0 12px 36px #14231d25}
+:root[data-theme="light"] .attachment-sheet button{color:#26372f;background:#f2f6f4}
+:root[data-theme="light"] .expiry-banner{background:#edf2ef;color:#68776f}
