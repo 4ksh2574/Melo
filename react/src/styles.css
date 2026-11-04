@@ -306,3 +306,32 @@ button::-moz-focus-inner { border: 0; }
 .demo-tag{flex:none;padding:5px 7px;border:1px solid #20ad9b45;border-radius:7px;background:#20ad9b12;color:var(--heading-accent);font-size:8px;font-weight:800;letter-spacing:.8px}
 .demo-footnote{margin:10px 3px 0;color:var(--muted);font-size:10px;line-height:1.55}
 :root[data-theme="light"] .demo-tag{background:#e7f5f0;border-color:#087f7330;color:#087f73}
+
+
+/* Performance pass: keep the glass look while reducing expensive mobile paint work. */
+.auth{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.top{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.dock-inner{backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15)}
+.subview-head{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.content{animation:pageIn .24s ease-out both}
+@keyframes pageIn{from{opacity:0;transform:translate3d(0,5px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+.chat-subview{animation:chatPageIn .22s ease-out both}
+@keyframes chatPageIn{from{opacity:0;transform:translate3d(0,7px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+.message-enter{animation:messageIn .2s ease-out both}
+@keyframes messageIn{from{opacity:0;transform:translate3d(0,5px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+.dock-indicator{transition:transform 320ms cubic-bezier(.2,.75,.25,1)}
+.dock button{transition:transform 220ms ease-out,color 160ms ease}
+.bubble{transition:transform 140ms ease-out}
+.send{transition:transform 150ms ease-out,filter 150ms ease-out}
+.details-actions button,.profile-settings-button{transition:transform 180ms ease-out,background 160ms ease,border-color 160ms ease}
+.duration-list button{transition:background 140ms ease}
+.messages{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.chat-subview,.content{transform:translateZ(0)}
+@media(max-width:600px){
+  .auth,.top,.dock-inner,.subview-head{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .welcome,.feature-card,.member,.chat-row,.profile-card,.detail-card{box-shadow:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .content,.chat-subview,.message-enter{animation:none!important}
+  .dock-indicator,.dock button,.bubble,.send,.details-actions button,.profile-settings-button,.duration-list button{transition:none!important}
+}
