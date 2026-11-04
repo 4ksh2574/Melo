@@ -725,7 +725,7 @@ export default function App() {
   const label = tab === "home" ? "Home" : tab === "chats" ? "Chats" : "Profile";
 
   return <main className="app" onTouchStart={touchStart} onTouchEnd={touchEnd}>
-    {!active && (tab === "home" || tab === "profile") ? (
+    {!active && tab === "home" ? (
       <header className="top top-logo-only"><div className="brand">melo<span>.</span></div></header>
     ) : null}
     {notice ? <button className="noticebar" onClick={() => setNotice("")}>{notice}<b>×</b></button> : null}
