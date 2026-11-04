@@ -62,6 +62,34 @@ type ThemePreference = "light" | "dark" | "system";
 type ChatPanel = "chat" | "details" | "media" | "disappearing" | "screenshots" | "safety" | "nickname";
 type MediaTab = "media" | "docs" | "links";
 type Tab = "home" | "chats" | "profile";
+type PlannerView = "overview" | "tasks" | "calendar" | "routine" | "progress";
+type PlannerTask = {
+  id: string;
+  title: string;
+  subject: string;
+  dueDate: string;
+  priority: "low" | "medium" | "high";
+  done: boolean;
+  createdAt: number;
+};
+type RoutineItem = { id: string; title: string; time: string; doneDates: string[] };
+const plannerSubjects = ["Physics", "Chemistry", "Mathematics", "English", "Computer Science", "Other"];
+const initialRoutine: RoutineItem[] = [
+  { id: "morning-revision", title: "Quick formula revision", time: "Before school", doneDates: [] },
+  { id: "physics-practice", title: "Physics numericals", time: "After school", doneDates: [] },
+  { id: "chemistry-recall", title: "Chemistry concepts & reactions", time: "Evening", doneDates: [] },
+  { id: "maths-practice", title: "Mathematics problem practice", time: "Evening", doneDates: [] },
+  { id: "daily-recap", title: "15-minute daily recap", time: "Before bed", doneDates: [] },
+];
+const localDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
+};
+const dateLabel = (value: string) => value
+  ? new Date(value + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+  : "No deadline";
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "home", label: "Home", icon: "⌂" },
   { id: "chats", label: "Chats", icon: "◌" },
@@ -174,6 +202,16 @@ export default function App() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [inboxMode, setInboxMode] = useState<"direct" | "group">("direct");
   const [inboxSearch, setInboxSearch] = useState("");
+  const [plannerView, setPlannerView] = useState<PlannerView>("overview");
+  const [plannerTasks, setPlannerTasks] = useState<PlannerTask[]>([]);
+  const [routineItems, setRoutineItems] = useState<RoutineItem[]>(initialRoutine);
+  const [plannerLoaded, setPlannerLoaded] = useState(false);
+  const [plannerTitle, setPlannerTitle] = useState("");
+  const [plannerSubject, setPlannerSubject] = useState("Physics");
+  const [plannerDueDate, setPlannerDueDate] = useState(localDateKey(new Date()));
+  const [plannerPriority, setPlannerPriority] = useState<PlannerTask["priority"]>("medium");
+  const [plannerMonth, setPlannerMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [plannerSelectedDate, setPlannerSelectedDate] = useState(localDateKey(new Date()));
 
   useEffect(() => {
     const root = document.documentElement;
@@ -204,6 +242,36 @@ export default function App() {
     setProfilePhotoDraft(saved);
     setProfilePhotoLoadError(false);
   }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setPlannerTasks([]);
+      setRoutineItems(initialRoutine);
+      setPlannerLoaded(false);
+      return;
+    }
+    try {
+      const taskData = window.localStorage.getItem("melo-planner-tasks:" + user.uid);
+      const routineData = window.localStorage.getItem("melo-planner-routine:" + user.uid);
+      setPlannerTasks(taskData ? JSON.parse(taskData) as PlannerTask[] : []);
+      setRoutineItems(routineData ? JSON.parse(routineData) as RoutineItem[] : initialRoutine);
+    } catch (error) {
+      console.error("Planner local data:", error);
+      setPlannerTasks([]);
+      setRoutineItems(initialRoutine);
+    }
+    setPlannerLoaded(true);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user?.uid || !plannerLoaded) return;
+    window.localStorage.setItem("melo-planner-tasks:" + user.uid, JSON.stringify(plannerTasks));
+  }, [plannerTasks, plannerLoaded, user?.uid]);
+
+  useEffect(() => {
+    if (!user?.uid || !plannerLoaded) return;
+    window.localStorage.setItem("melo-planner-routine:" + user.uid, JSON.stringify(routineItems));
+  }, [routineItems, plannerLoaded, user?.uid]);
 
   useEffect(() => onAuthStateChanged(auth, async (nextUser) => {
     setUser(nextUser);
@@ -452,6 +520,58 @@ export default function App() {
   const allMembers = useMemo(() => user
     ? [{ uid: user.uid, displayName: user.displayName || user.email || "You" }, ...members, ...(demoReady ? demoMembers : [])]
     : members, [user, members, demoReady]);
+
+  const todayKey = localDateKey(new Date());
+  const pendingTasks = plannerTasks.filter((task) => !task.done);
+  const completedTasks = plannerTasks.filter((task) => task.done);
+  const overdueTasks = pendingTasks.filter((task) => task.dueDate && task.dueDate < todayKey);
+  const upcomingTasks = pendingTasks
+    .filter((task) => !task.dueDate || task.dueDate >= todayKey)
+    .sort((a, b) => (a.dueDate || "9999-99-99").localeCompare(b.dueDate || "9999-99-99"))
+    .slice(0, 4);
+  const todayRoutineDone = routineItems.filter((item) => item.doneDates.includes(todayKey)).length;
+
+  function addPlannerTask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = plannerTitle.trim();
+    if (!title) return;
+    setPlannerTasks((current) => [{
+      id: (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : String(Date.now()),
+      title,
+      subject: plannerSubject,
+      dueDate: plannerDueDate,
+      priority: plannerPriority,
+      done: false,
+      createdAt: Date.now(),
+    }, ...current]);
+    setPlannerTitle("");
+    setNotice("Task added to your study planner.");
+  }
+
+  function togglePlannerTask(id: string) {
+    setPlannerTasks((current) => current.map((task) => task.id === id ? { ...task, done: !task.done } : task));
+  }
+
+  function deletePlannerTask(id: string) {
+    setPlannerTasks((current) => current.filter((task) => task.id !== id));
+  }
+
+  function toggleRoutineItem(id: string) {
+    setRoutineItems((current) => current.map((item) => ({
+      ...item,
+      doneDates: item.doneDates.includes(todayKey)
+        ? item.doneDates.filter((date) => date !== todayKey)
+        : [...item.doneDates, todayKey],
+    })));
+  }
+
+  const plannerMonthDays = (() => {
+    const firstDay = new Date(plannerMonth.getFullYear(), plannerMonth.getMonth(), 1);
+    const offset = (firstDay.getDay() + 6) % 7;
+    const count = new Date(plannerMonth.getFullYear(), plannerMonth.getMonth() + 1, 0).getDate();
+    return [...Array(offset).fill(null), ...Array.from({ length: count }, (_, index) => index + 1)];
+  })();
+  const selectedDateTasks = plannerTasks.filter((task) => task.dueDate === plannerSelectedDate);
 
   const inbox = useMemo(() => {
     const merged = new Map<string, Conversation>();
@@ -843,15 +963,112 @@ export default function App() {
           {tab === "home" && <div className="avatar">{initials(user?.displayName || "M")}</div>}
         </div>}
 
-        {tab === "home" && <>
-          <div className="people-strip">
-            <div className="person"><div className="avatar own">{initials(user?.displayName || "M")}</div><small>You</small></div>
-            {ordered.map((member) => <button className="person" key={member.uid} onClick={() => openDirect(member)}>
-              <div className="avatar">{initials(nameOf(member))}</div><small>{nameOf(member).split(" ")[0]}</small>
-            </button>)}
-          </div>
-        </>}
+        {tab === "home" && <div className="student-planner">
+          <section className="planner-welcome">
+            <div className="planner-welcome-top"><span>AX STUDY SPACE · CLASS XI</span><span className="planner-live-dot">● YOUR PLAN</span></div>
+            <h2>Make today<br/><em>count.</em></h2>
+            <p>A calmer way to stay ahead of school, one focused step at a time.</p>
+            <div className="planner-welcome-stats">
+              <div><strong>{pendingTasks.length}</strong><small>To do</small></div>
+              <i />
+              <div><strong>{overdueTasks.length}</strong><small>Overdue</small></div>
+              <i />
+              <div><strong>{completedTasks.length}</strong><small>Completed</small></div>
+            </div>
+          </section>
 
+          <div className="planner-subnav" role="tablist" aria-label="Study planner sections">
+            {([
+              ["overview", "Today", "⌂"],
+              ["tasks", "Tasks", "✓"],
+              ["calendar", "Calendar", "▦"],
+              ["routine", "Routine", "◷"],
+              ["progress", "Progress", "↗"],
+            ] as [PlannerView, string, string][]).map(([view, title, icon]) =>
+              <button key={view} role="tab" aria-selected={plannerView === view}
+                className={plannerView === view ? "selected" : ""}
+                onClick={() => setPlannerView(view)}>
+                <span>{icon}</span><small>{title}</small>
+              </button>
+            )}
+          </div>
+
+          {plannerView === "overview" && <>
+            <div className="planner-greeting-row">
+              <div><small>{new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }).toUpperCase()}</small><h3>Your study dashboard</h3></div>
+              <button className="planner-add-mini" onClick={() => setPlannerView("tasks")}>＋ Add task</button>
+            </div>
+            <div className="planner-focus-card">
+              <div><span className="planner-card-kicker">TODAY'S FOCUS</span><h3>{overdueTasks.length ? "Clear the backlog" : pendingTasks.length ? "One task at a time" : "A fresh page awaits"}</h3><p>{overdueTasks.length ? overdueTasks.length + " overdue item(s) need your attention." : pendingTasks.length ? "Pick a priority and give it your best focused effort." : "Add your first assignment, revision target or test date."}</p></div>
+              <div className="planner-focus-ring"><strong>{plannerTasks.length ? Math.round(completedTasks.length / plannerTasks.length * 100) : 0}%</strong><small>done</small></div>
+            </div>
+            <div className="planner-section-head"><h3>Upcoming deadlines</h3><button onClick={() => setPlannerView("tasks")}>All tasks ↗</button></div>
+            {overdueTasks.slice(0,2).map((task) => <div className="planner-task-row overdue" key={task.id}>
+              <button className="planner-check" onClick={() => togglePlannerTask(task.id)} aria-label="Mark complete" />
+              <div className="planner-task-copy"><strong>{task.title}</strong><small>{task.subject} · Overdue</small></div><span className="planner-due-label">Late</span>
+            </div>)}
+            {upcomingTasks.map((task) => <div className="planner-task-row" key={task.id}>
+              <button className="planner-check" onClick={() => togglePlannerTask(task.id)} aria-label="Mark complete" />
+              <div className="planner-task-copy"><strong>{task.title}</strong><small>{task.subject} · {task.dueDate === todayKey ? "Due today" : dateLabel(task.dueDate)}</small></div><span className={"planner-priority " + task.priority}>{task.priority}</span>
+            </div>)}
+            {!overdueTasks.length && !upcomingTasks.length && <div className="planner-empty"><span>✦</span><strong>Your schedule is clear.</strong><small>Add a task to start planning your week.</small></div>}
+            <div className="planner-quick-grid">
+              <button onClick={() => setPlannerView("calendar")}><span>▦</span><strong>Plan your month</strong><small>Tests, submissions & events</small></button>
+              <button onClick={() => setPlannerView("routine")}><span>◷</span><strong>Build consistency</strong><small>{todayRoutineDone}/{routineItems.length} daily habits done</small></button>
+            </div>
+          </>}
+
+          {plannerView === "tasks" && <>
+            <div className="planner-greeting-row"><div><small>PLAN · PRIORITISE · FINISH</small><h3>Your task list</h3></div><span className="planner-count-pill">{pendingTasks.length} active</span></div>
+            <form className="planner-task-form" onSubmit={addPlannerTask}>
+              <label>What needs to get done?<input value={plannerTitle} onChange={(event) => setPlannerTitle(event.target.value)} placeholder="e.g. Complete Motion in a Plane numericals" maxLength={100} required /></label>
+              <div className="planner-form-grid">
+                <label>Subject<select value={plannerSubject} onChange={(event) => setPlannerSubject(event.target.value)}>{plannerSubjects.map((subject) => <option key={subject}>{subject}</option>)}</select></label>
+                <label>Deadline<input type="date" value={plannerDueDate} onChange={(event) => setPlannerDueDate(event.target.value)} /></label>
+              </div>
+              <div className="planner-form-bottom"><label>Priority<select value={plannerPriority} onChange={(event) => setPlannerPriority(event.target.value as PlannerTask["priority"])}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label><button className="planner-submit" type="submit">＋ Add to planner</button></div>
+            </form>
+            <div className="planner-section-head"><h3>Active work</h3><small>{pendingTasks.length} remaining</small></div>
+            {pendingTasks.slice().sort((a,b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999")).map((task) => <div className={"planner-task-row " + (task.dueDate && task.dueDate < todayKey ? "overdue" : "")} key={task.id}>
+              <button className="planner-check" onClick={() => togglePlannerTask(task.id)} aria-label="Mark complete" />
+              <div className="planner-task-copy"><strong>{task.title}</strong><small>{task.subject} · {task.dueDate ? dateLabel(task.dueDate) : "No deadline"}</small></div><span className={"planner-priority " + task.priority}>{task.priority}</span><button className="planner-delete" onClick={() => deletePlannerTask(task.id)} aria-label="Delete task">×</button>
+            </div>)}
+            {!pendingTasks.length && <div className="planner-empty"><span>✓</span><strong>Nothing pending.</strong><small>Enjoy the breathing room or add a new task.</small></div>}
+            {completedTasks.length > 0 && <><div className="planner-section-head"><h3>Completed</h3><small>{completedTasks.length}</small></div>{completedTasks.map((task) => <div className="planner-task-row completed" key={task.id}><button className="planner-check checked" onClick={() => togglePlannerTask(task.id)} aria-label="Reopen task">✓</button><div className="planner-task-copy"><strong>{task.title}</strong><small>{task.subject} · Completed</small></div><button className="planner-delete" onClick={() => deletePlannerTask(task.id)} aria-label="Delete task">×</button></div>)}</>}
+          </>}
+
+          {plannerView === "calendar" && <>
+            <div className="planner-greeting-row"><div><small>DEADLINES AT A GLANCE</small><h3>Your calendar</h3></div><span className="planner-count-pill">{plannerTasks.length} events</span></div>
+            <section className="planner-calendar-card">
+              <div className="planner-calendar-top"><button onClick={() => setPlannerMonth(new Date(plannerMonth.getFullYear(), plannerMonth.getMonth()-1,1))}>‹</button><strong>{plannerMonth.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</strong><button onClick={() => setPlannerMonth(new Date(plannerMonth.getFullYear(),plannerMonth.getMonth()+1,1))}>›</button></div>
+              <div className="planner-calendar-grid">{["M","T","W","T","F","S","S"].map((day,index)=><small key={day+index}>{day}</small>)}
+                {plannerMonthDays.map((day,index) => {
+                  if (!day) return <span className="planner-calendar-blank" key={"blank-"+index}/>;
+                  const dateKey = localDateKey(new Date(plannerMonth.getFullYear(),plannerMonth.getMonth(),day));
+                  const hasTask = plannerTasks.some((task) => task.dueDate === dateKey && !task.done);
+                  return <button key={dateKey} className={(plannerSelectedDate === dateKey ? "selected " : "") + (dateKey === todayKey ? "today " : "") + (hasTask ? "has-task" : "")} onClick={() => setPlannerSelectedDate(dateKey)}>{day}{hasTask && <i/>}</button>;
+                })}
+              </div>
+            </section>
+            <div className="planner-section-head"><h3>{dateLabel(plannerSelectedDate)}</h3><button onClick={() => {setPlannerDueDate(plannerSelectedDate);setPlannerView("tasks");}}>＋ Add deadline</button></div>
+            {selectedDateTasks.length ? selectedDateTasks.map((task)=><div className={"planner-task-row "+(task.done?"completed":"")} key={task.id}><button className={"planner-check "+(task.done?"checked":"")} onClick={()=>togglePlannerTask(task.id)}>{task.done?"✓":""}</button><div className="planner-task-copy"><strong>{task.title}</strong><small>{task.subject} · {task.done?"Completed":task.priority+" priority"}</small></div></div>) : <div className="planner-empty"><span>◷</span><strong>No deadlines on this day.</strong><small>Tap “Add deadline” to plan ahead.</small></div>}
+          </>}
+
+          {plannerView === "routine" && <>
+            <div className="planner-greeting-row"><div><small>SMALL STEPS, BIG MOMENTUM</small><h3>Your daily routine</h3></div><span className="planner-count-pill">{todayRoutineDone}/{routineItems.length} done</span></div>
+            <div className="planner-routine-hero"><strong>{Math.round(todayRoutineDone/Math.max(1,routineItems.length)*100)}%</strong><span>of today's routine complete</span><div><i style={{width:(todayRoutineDone/Math.max(1,routineItems.length)*100)+"%"}}/></div></div>
+            {routineItems.map((item)=><button key={item.id} className={"planner-routine-row "+(item.doneDates.includes(todayKey)?"done":"")} onClick={()=>toggleRoutineItem(item.id)}><span className="planner-routine-check">{item.doneDates.includes(todayKey)?"✓":""}</span><span><strong>{item.title}</strong><small>{item.time}</small></span><b>{item.doneDates.includes(todayKey)?"Done":"Mark done"}</b></button>)}
+            <p className="planner-helper-note">These are suggested Class XI PCM habits. Tick them off as you complete them, or simply use the list as a guide.</p>
+          </>}
+
+          {plannerView === "progress" && <>
+            <div className="planner-greeting-row"><div><small>YOUR EFFORT, MADE VISIBLE</small><h3>Study progress</h3></div><span className="planner-count-pill">Class XI</span></div>
+            <div className="planner-progress-hero"><strong>{plannerTasks.length ? Math.round(completedTasks.length/plannerTasks.length*100):0}%</strong><span>tasks completed</span><div><i style={{width:(plannerTasks.length?completedTasks.length/plannerTasks.length*100:0)+"%"}}/></div></div>
+            <div className="planner-progress-grid"><div><strong>{completedTasks.length}</strong><small>Finished</small></div><div><strong>{pendingTasks.length}</strong><small>In progress</small></div><div><strong>{overdueTasks.length}</strong><small>Overdue</small></div></div>
+            <div className="planner-section-head"><h3>Subject workload</h3><small>Tasks you've added</small></div>
+            {plannerSubjects.slice(0,5).map((subject)=>{const count=plannerTasks.filter((task)=>task.subject===subject).length;const done=plannerTasks.filter((task)=>task.subject===subject&&task.done).length;return <div className="planner-subject-progress" key={subject}><div><strong>{subject}</strong><small>{done}/{count} done</small></div><span><i style={{width:(count?done/count*100:0)+"%"}}/></span></div>;})}
+          </>}
+        </div>}
         {tab === "chats" && <>
           <section className="inbox-hero">
             <div className="inbox-hero-top">
