@@ -141,6 +141,9 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<Tab>("home");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
+  const [profilePhotoDraft, setProfilePhotoDraft] = useState("");
+  const [profilePhotoLoadError, setProfilePhotoLoadError] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
     const saved = window.localStorage.getItem("melo-theme");
     return saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
@@ -187,6 +190,19 @@ export default function App() {
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
   }, [themePreference]);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setProfilePhotoUrl("");
+      setProfilePhotoDraft("");
+      setProfilePhotoLoadError(false);
+      return;
+    }
+    const saved = window.localStorage.getItem("melo-profile-photo:" + user.uid) || "";
+    setProfilePhotoUrl(saved);
+    setProfilePhotoDraft(saved);
+    setProfilePhotoLoadError(false);
+  }, [user?.uid]);
 
   useEffect(() => onAuthStateChanged(auth, async (nextUser) => {
     setUser(nextUser);
@@ -459,6 +475,30 @@ export default function App() {
     const otherId = conversation.memberIds.find((id) => id !== user?.uid);
     return nameOf(allMembers.find((member) => member.uid === otherId));
   };
+
+  const saveProfilePhoto = () => {
+    if (!user) return;
+    const value = profilePhotoDraft.trim();
+    if (value) {
+      try {
+        const parsed = new URL(value);
+        if (parsed.protocol !== "https:") throw new Error("HTTPS required");
+      } catch {
+        setNotice("Enter a valid image URL beginning with https://.");
+        return;
+      }
+    }
+    const key = "melo-profile-photo:" + user.uid;
+    if (value) window.localStorage.setItem(key, value);
+    else window.localStorage.removeItem(key);
+    setProfilePhotoUrl(value);
+    setProfilePhotoLoadError(false);
+    setNotice(value
+      ? "Profile photo saved on this device."
+      : "Custom profile photo removed.");
+  };
+
+  const ownPhotoUrl = profilePhotoUrl || user?.photoURL || "";
 
   const saveNickname = (value: string) => {
     setNickname(value);
@@ -797,7 +837,7 @@ export default function App() {
       </div>}
     </section> : <>
       <section className={"content " + (tab === "chats" ? "inbox-content" : "")} key={tab}>
-        {tab !== "chats" && <div className="heading">
+        {tab === "home" && <div className="heading">
           <div><small>MELO · {label.toUpperCase()}</small><h1>{tab === "home" ? "Your circle" : label}</h1></div>
           {tab === "home" && <div className="avatar">{initials(user?.displayName || "M")}</div>}
         </div>}
@@ -827,7 +867,7 @@ export default function App() {
             <div className="inbox-contacts-strip">
               <div className="inbox-contact inbox-contact-you">
                 <span className="avatar inbox-contact-avatar own">
-                  {user?.photoURL ? <img src={user.photoURL} alt="" /> : initials(user?.displayName || "M")}
+                  {ownPhotoUrl && !profilePhotoLoadError ? <img src={ownPhotoUrl} alt="" onError={() => setProfilePhotoLoadError(true)} /> : initials(user?.displayName || "M")}
                 </span>
                 <small>You</small>
               </div>
@@ -949,20 +989,93 @@ export default function App() {
           </button>
         </>}
 
-        {tab === "profile" && <div className="profile-card">
+        {tab === "profile" && <div className={"profile-card profile-page " + (settingsOpen ? "profile-settings-view" : "")}>
           {!settingsOpen ? <>
-            <div className="profile-topline">
-              <span className="profile-label">YOUR PROFILE</span>
-              <button className="profile-settings-button" type="button" aria-label="Open settings" onClick={() => setSettingsOpen(true)}>⚙</button>
-            </div>
-            <div className="avatar large">{initials(user?.displayName || "M")}</div>
-            <h2>{user?.displayName || "Melo member"}</h2><p>{user?.email}</p>
-            <span className="member-badge">✓ Approved member</span>
+            <section className="profile-cover">
+              <div className="profile-cover-image">
+                {ownPhotoUrl && !profilePhotoLoadError
+                  ? <img src={ownPhotoUrl} alt={user?.displayName || "Profile photo"} onError={() => setProfilePhotoLoadError(true)} />
+                  : <div className="profile-cover-fallback">{initials(user?.displayName || "M")}</div>}
+              </div>
+              <div className="profile-cover-overlay">
+                <span>MELO · MEMBER PROFILE</span>
+                <button className="profile-settings-button" type="button" aria-label="Open settings" onClick={() => setSettingsOpen(true)}>⚙</button>
+              </div>
+            </section>
+            <section className="profile-identity">
+              <div className="profile-name-row">
+                <h1>{user?.displayName || "Melo member"}</h1>
+                <span className="profile-verified" title="Approved member" aria-label="Approved member">✓</span>
+              </div>
+              <span className="profile-status">APPROVED MELO MEMBER</span>
+              <p className="profile-bio">A member of your private circle. Here for the conversations and moments that matter.</p>
+              <div className="profile-stats">
+                <div><strong>{membersLoaded ? members.length + 1 : "—"}</strong><span>Circle members</span></div>
+                <div><strong>{inbox.length}</strong><span>Conversations</span></div>
+              </div>
+              <button className="profile-edit-button" type="button" onClick={() => setSettingsOpen(true)}>Edit profile <span>↗</span></button>
+            </section>
+            <section className="profile-circle">
+              <div className="profile-section-heading"><h2>Your Circle</h2><span>{membersLoaded ? members.length + 1 : "—"} members</span></div>
+              <div className="profile-circle-grid">
+                <div className="profile-circle-person">
+                  <span className="avatar profile-circle-avatar">
+                    {ownPhotoUrl && !profilePhotoLoadError
+                      ? <img src={ownPhotoUrl} alt="" onError={() => setProfilePhotoLoadError(true)} />
+                      : initials(user?.displayName || "M")}
+                  </span>
+                  <strong>{(user?.displayName || "You").split(" ")[0]}</strong><small>You</small>
+                </div>
+                {members.map((member) => <div className="profile-circle-person" key={member.uid}>
+                  <span className="avatar profile-circle-avatar">
+                    {member.photoURL
+                      ? <img src={member.photoURL} alt="" />
+                      : initials(nameOf(member))}
+                  </span>
+                  <strong>{nameOf(member).split(" ")[0]}</strong><small>Member</small>
+                </div>)}
+              </div>
+            </section>
           </> : <>
             <div className="profile-settings-head">
               <button className="settings-back" type="button" onClick={() => setSettingsOpen(false)} aria-label="Back to profile">‹</button>
               <div><small>PERSONALIZE MELO</small><h2>Settings</h2></div>
             </div>
+            <section className="settings-card profile-photo-settings" aria-labelledby="profile-photo-title">
+              <div className="settings-heading">
+                <div><small>PROFILE</small><h3 id="profile-photo-title">Profile photo</h3></div>
+                <span className="settings-symbol" aria-hidden="true">◎</span>
+              </div>
+              <div className="profile-photo-setting-preview">
+                <span className="avatar profile-photo-preview">
+                  {profilePhotoUrl && !profilePhotoLoadError
+                    ? <img src={profilePhotoUrl} alt="Profile preview" onError={() => setProfilePhotoLoadError(true)} />
+                    : user?.photoURL && !profilePhotoLoadError
+                      ? <img src={user.photoURL} alt="Profile preview" onError={() => setProfilePhotoLoadError(true)} />
+                      : initials(user?.displayName || "M")}
+                </span>
+                <div><strong>{user?.displayName || "Melo member"}</strong><small>Preview of your profile picture</small></div>
+              </div>
+              <label className="profile-photo-label" htmlFor="profile-photo-url">Image URL</label>
+              <input id="profile-photo-url" className="profile-photo-input" type="url"
+                value={profilePhotoDraft} onChange={(event) => {
+                  setProfilePhotoDraft(event.target.value);
+                  setProfilePhotoLoadError(false);
+                }}
+                placeholder="https://example.com/photo.jpg" autoComplete="url" />
+              <p>Use a direct HTTPS link to an image. The image is previewed on your profile after saving.</p>
+              <div className="profile-photo-actions">
+                <button type="button" className="primary" onClick={saveProfilePhoto}>Save photo</button>
+                <button type="button" className="secondary" onClick={() => {
+                  setProfilePhotoDraft("");
+                  setProfilePhotoUrl("");
+                  setProfilePhotoLoadError(false);
+                  if (user) window.localStorage.removeItem("melo-profile-photo:" + user.uid);
+                  setNotice("Custom profile photo removed.");
+                }}>Remove</button>
+              </div>
+              <small className="settings-note">With the current Firestore permissions, this custom URL is saved only on this device. Other members will not see it yet.</small>
+            </section>
             <section className="settings-card" aria-labelledby="appearance-title">
               <div className="settings-heading">
                 <div><small>DISPLAY</small><h3 id="appearance-title">Appearance</h3></div>
@@ -989,8 +1102,7 @@ export default function App() {
               <button className="signout-button" onClick={() => signOut(auth)}>Sign out</button>
             </section>
           </>}
-        </div>}
-      </section>
+        </div>}      </section>
       <nav className="dock"><div className="dock-inner">
         <span className="dock-indicator" style={{ transform: "translateX(" + tabs.findIndex((item) => item.id === tab) * 100 + "%)" }} />
         {tabs.map((item) => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)} aria-label={item.label}>
