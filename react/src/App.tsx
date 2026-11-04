@@ -59,8 +59,7 @@ type DemoStore = {
 };
 type Gate = "checking" | "signed-out" | "approved" | "pending" | "error";
 type ThemePreference = "light" | "dark" | "system";
-type ChatPanel = "chat" | "details" | "media" | "disappearing" | "screenshots" | "safety" | "nickname";
-type MediaTab = "media" | "docs" | "links";
+type ChatPanel = "chat" | "details" | "links" | "disappearing" | "nickname";
 type Tab = "home" | "chats" | "profile";
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "home", label: "Home", icon: "⌂" },
@@ -131,6 +130,27 @@ const expiryChoices = [
 ];
 const expiryLabel = (seconds: number) =>
   expiryChoices.find((choice) => choice.seconds === seconds)?.label || "Off";
+const messageTimeLabel = (stamp?: Stamp) => {
+  const value = stampValue(stamp);
+  return value
+    ? new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(value))
+    : "";
+};
+const messageDateLabel = (stamp?: Stamp) => {
+  const value = stampValue(stamp);
+  if (!value) return "Earlier";
+  const date = new Date(value);
+  const today = new Date();
+  if (date.toDateString() === today.toDateString()) return "Today";
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return new Intl.DateTimeFormat(undefined, {
+    day: "numeric",
+    month: "short",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
+  }).format(date);
+};
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -159,14 +179,12 @@ export default function App() {
   const [demoReady, setDemoReady] = useState(false);
   const [active, setActive] = useState<Conversation | null>(null);
   const [chatPanel, setChatPanel] = useState<ChatPanel>("chat");
-  const [mediaTab, setMediaTab] = useState<MediaTab>("media");
   const [nickname, setNickname] = useState("");
   const [disappearingAfterSeconds, setDisappearingAfterSeconds] = useState(0);
   const [messages, setMessages] = useState<Message[]>([]);
   const [legacyMessages, setLegacyMessages] = useState<Message[]>([]);
   const [fourMessages, setFourMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
-  const [attachmentOpen, setAttachmentOpen] = useState(false);
   const [swipeX, setSwipeX] = useState<number | null>(null);
   const [swipeY, setSwipeY] = useState<number | null>(null);
   const [groupPanel, setGroupPanel] = useState(false);
@@ -352,9 +370,7 @@ export default function App() {
   }, [demoReady, demoExpiresAt, demoConversations, demoMessages, user?.uid]);
 
   useEffect(() => {
-    setAttachmentOpen(false);
     setChatPanel("chat");
-    setMediaTab("media");
     if (!active || !user) {
       setNickname("");
       setDraft("");
@@ -754,24 +770,25 @@ export default function App() {
           {allMessages.length ? allMessages.map((message, index) => {
             const mine = message.uid === user?.uid;
             const sender = allMembers.find((member) => member.uid === message.uid);
-            return <div key={message.source + ":" + message.id}
-              className={"message-wrap message-enter " + (mine ? "mine-wrap" : "")}
-              style={{ animationDelay: Math.min(index, 10) * 24 + "ms" }}>
-              {active.type === "group" && !mine && <small className="message-sender">{nameOf(sender)}</small>}
-              <div className={"bubble " + (mine ? "mine" : "")}>{message.text}</div>
+            const timestamp = stampValue(message.createdAt);
+            const day = messageDateLabel(message.createdAt);
+            const previousDay = index > 0 ? messageDateLabel(allMessages[index - 1].createdAt) : "";
+            const time = messageTimeLabel(message.createdAt);
+            return <div className="message-entry" key={message.source + ":" + message.id}>
+              {day !== previousDay && <div className="date-divider"><span>{day}</span></div>}
+              <div className={"message-wrap message-enter " + (mine ? "mine-wrap" : "")}
+                style={{ animationDelay: Math.min(index, 10) * 24 + "ms" }}>
+                {active.type === "group" && !mine && <small className="message-sender">{nameOf(sender)}</small>}
+                <div className={"bubble " + (mine ? "mine" : "")}>
+                  <span className="bubble-text">{message.text}</span>
+                  {time && <time className="bubble-time" dateTime={timestamp ? new Date(timestamp).toISOString() : undefined}>{time}</time>}
+                </div>
+              </div>
             </div>;
           }) : <p className="empty">A little hello goes a long way ✨</p>}
         </div>
         {disappearingAfterSeconds > 0 && <div className="expiry-banner">◷ New messages disappear after {expiryLabel(disappearingAfterSeconds).toLowerCase()}</div>}
-        {attachmentOpen && <div className="attachment-sheet" role="dialog" aria-label="Attachments">
-          {[
-            ["▧", "Photos"], ["◎", "Camera"], ["▤", "Files"], ["GIF", "GIFs"],
-          ].map(([icon, label]) => <button key={label} type="button" onClick={() => { setAttachmentOpen(false); setNotice("Media sharing is not enabled in Melo yet."); }}>
-            <span>{icon}</span>{label}
-          </button>)}
-        </div>}
         <form className="composer" autoComplete="off" onSubmit={sendMessage}>
-          <button className="attach-button" type="button" aria-label="Add attachment" onClick={() => setAttachmentOpen((open) => !open)}>{attachmentOpen ? "×" : "+"}</button>
           <input type="text" name="melo-chat-message" autoComplete="off" autoCorrect="off" autoCapitalize="sentences" spellCheck={false} inputMode="text" value={draft} onChange={(event) => {
             const value = event.target.value;
             setDraft(value);
@@ -790,7 +807,7 @@ export default function App() {
       </> : <div className="chat-subview">
         <header className="subview-head">
           <button className="back" onClick={() => setChatPanel(chatPanel === "details" ? "chat" : "details")} aria-label="Back">‹</button>
-          <h2>{chatPanel === "details" ? "Conversation info" : chatPanel === "media" ? "Media, Links, Docs" : chatPanel === "disappearing" ? "Disappearing messages" : chatPanel === "screenshots" ? "Screenshot protection" : chatPanel === "safety" ? "Safety number" : "Add nickname"}</h2>
+          <h2>{chatPanel === "details" ? "Conversation info" : chatPanel === "links" ? "Shared links" : chatPanel === "disappearing" ? "Disappearing messages" : "Add nickname"}</h2>
           {chatPanel === "nickname" && <button className="text-action" onClick={() => setChatPanel("details")}>Done</button>}
           {chatPanel !== "nickname" && <span className="subview-spacer" />}
         </header>
@@ -802,7 +819,7 @@ export default function App() {
             <button className="nickname-shortcut" onClick={() => setChatPanel("nickname")}>✎ {nickname ? "Edit nickname" : "Add nickname"}</button>
           </div>
           <div className="details-actions">
-            <button onClick={() => setChatPanel("media")}><span>▧</span><small>Media</small></button>
+            <button onClick={() => setChatPanel("links")}><span>↗</span><small>Links</small></button>
             <button onClick={() => setChatPanel("disappearing")}><span>◷</span><small>Timer</small></button>
             <button onClick={() => setChatPanel("nickname")}><span>✎</span><small>Nickname</small></button>
           </div>
@@ -813,23 +830,14 @@ export default function App() {
             )}
           </div>}
           <div className="detail-card settings-list">
-            <button className="detail-row" onClick={() => setChatPanel("media")}><span className="detail-icon">▧</span><span><strong>Media, Links, Docs</strong><small>Shared items in this conversation</small></span><b>›</b></button>
+            <button className="detail-row" onClick={() => setChatPanel("links")}><span className="detail-icon">↗</span><span><strong>Shared links</strong><small>Links sent in this conversation</small></span><b>›</b></button>
             <button className="detail-row" onClick={() => setChatPanel("disappearing")}><span className="detail-icon">◷</span><span><strong>Disappearing messages</strong><small>{expiryLabel(disappearingAfterSeconds)}</small></span><b>›</b></button>
-            <button className="detail-row" onClick={() => setChatPanel("screenshots")}><span className="detail-icon">▣</span><span><strong>Block screenshots</strong><small>Not supported in a web browser</small></span><b>›</b></button>
-            <button className="detail-row" onClick={() => setChatPanel("safety")}><span className="detail-icon">◇</span><span><strong>Safety number</strong><small>End-to-end verification unavailable</small></span><b>›</b></button>
           </div>
         </>}
-        {chatPanel === "media" && <>
-          <div className="media-tabs">
-            {(["media", "docs", "links"] as MediaTab[]).map((value) =>
-              <button key={value} className={mediaTab === value ? "selected" : ""} onClick={() => setMediaTab(value)}>
-                {value === "media" ? "Media" : value === "docs" ? "Docs" : "Links"}
-              </button>
-            )}
-          </div>
-          {mediaTab === "links" && extractedLinks.length ? <div className="shared-links">
+        {chatPanel === "links" && <>
+          {extractedLinks.length ? <div className="shared-links">
             {extractedLinks.map((item) => <a key={item.id} href={item.url} target="_blank" rel="noreferrer"><span>↗</span><div><strong>{item.url}</strong><small>{item.text}</small></div></a>)}
-          </div> : <div className="media-empty"><span>{mediaTab === "media" ? "▧" : mediaTab === "docs" ? "▤" : "↗"}</span><strong>No {mediaTab === "media" ? "media" : mediaTab === "docs" ? "documents" : "links"} yet</strong><p>{mediaTab === "media" ? "Photos and videos can be added when Melo's secure file sharing is introduced." : mediaTab === "docs" ? "Shared documents will appear here." : "Links shared in messages will appear here."}</p></div>}
+          </div> : <div className="media-empty"><span>↗</span><strong>No shared links yet</strong><p>Links sent in this conversation will appear here.</p></div>}
         </>}
         {chatPanel === "disappearing" && <>
           <div className="settings-intro"><span>◷</span><p>Choose how long <strong>new messages</strong> stay in this conversation. The timer starts when a message is sent. Existing messages are not changed.</p></div>
@@ -840,16 +848,7 @@ export default function App() {
           </div>
           <p className="settings-footnote">Expired messages are hidden and cleaned up when a member opens this conversation again. This is not a guaranteed deletion timer while everyone is offline.</p>
         </>}
-        {chatPanel === "screenshots" && <div className="capability-notice">
-          <span>▣</span><h3>Screenshot blocking isn't available on the web.</h3>
-          <p>A browser-based app cannot reliably stop the operating system or another device from capturing the screen. Melo won't show a switch that suggests otherwise.</p>
-          <div className="capability-status">Unavailable on this platform</div>
-        </div>}
-        {chatPanel === "safety" && <div className="capability-notice">
-          <span>◇</span><h3>Safety-number verification isn't available yet.</h3>
-          <p>Melo doesn't currently implement end-to-end encryption. Firebase protects data in transit and at rest, but that is not the same as end-to-end encryption. A verification code or QR here would be misleading.</p>
-          <div className="capability-status">End-to-end encryption not enabled</div>
-        </div>}
+
         {chatPanel === "nickname" && <div className="nickname-page">
           <div className="nickname-info">ⓘ This nickname is private to you and is saved only on this device.</div>
           <label htmlFor="chat-nickname">Nickname</label>
