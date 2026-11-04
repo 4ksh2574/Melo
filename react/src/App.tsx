@@ -71,8 +71,34 @@ type PlannerTask = {
   priority: "low" | "medium" | "high";
   done: boolean;
   createdAt: number;
+  googleEventId?: string;
 };
-type RoutineItem = { id: string; title: string; time: string; doneDates: string[] };
+type RoutineItem = { id: string; title: string; time: string; days?: number[]; doneDates: string[] };
+type GoogleCalendarEvent = {
+  id: string;
+  summary?: string;
+  description?: string;
+  htmlLink?: string;
+  status?: string;
+  start?: { date?: string; dateTime?: string };
+  end?: { date?: string; dateTime?: string };
+};
+type GoogleTokenResponse = { access_token?: string; error?: string; error_description?: string };
+type GoogleTokenClient = { requestAccessToken: (options?: { prompt?: string }) => void };
+type GoogleOAuthApi = {
+  initTokenClient: (config: {
+    client_id: string;
+    scope: string;
+    callback: (response: GoogleTokenResponse) => void;
+    error_callback?: (error: { type?: string; message?: string }) => void;
+  }) => GoogleTokenClient;
+  revoke?: (token: string, callback: (response: { successful?: boolean }) => void) => void;
+};
+declare global {
+  interface Window {
+    google?: { accounts?: { oauth2?: GoogleOAuthApi } };
+  }
+}
 const plannerSubjects = ["Physics", "Chemistry", "Mathematics", "English", "Computer Science", "Other"];
 const initialRoutine: RoutineItem[] = [
   { id: "morning-revision", title: "Quick formula revision", time: "Before school", doneDates: [] },
@@ -90,6 +116,18 @@ const localDateKey = (date: Date) => {
 const dateLabel = (value: string) => value
   ? new Date(value + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
   : "No deadline";
+const googleEventDateKey = (event: GoogleCalendarEvent) => event.start?.date
+  || (event.start?.dateTime ? localDateKey(new Date(event.start.dateTime)) : "");
+const googleEventTimeLabel = (event: GoogleCalendarEvent) => event.start?.dateTime
+  ? new Date(event.start.dateTime).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+  : "All day";
+const routineScheduleLabel = (days?: number[]) => {
+  if (!days || days.length === 7) return "Every day";
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    .filter((_, index) => days.includes(index)).join(" · ") || "No days selected";
+};
+const routineIsScheduled = (item: RoutineItem, dateKey: string) =>
+  !item.days || item.days.includes(new Date(dateKey + "T00:00:00").getDay());
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "home", label: "Home", icon: "⌂" },
   { id: "chats", label: "Chats", icon: "◌" },
@@ -212,6 +250,16 @@ export default function App() {
   const [plannerPriority, setPlannerPriority] = useState<PlannerTask["priority"]>("medium");
   const [plannerMonth, setPlannerMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [plannerSelectedDate, setPlannerSelectedDate] = useState(localDateKey(new Date()));
+  const [routineFormOpen, setRoutineFormOpen] = useState(false);
+  const [routineEditingId, setRoutineEditingId] = useState<string | null>(null);
+  const [routineTitle, setRoutineTitle] = useState("");
+  const [routineTime, setRoutineTime] = useState("After school");
+  const [routineDays, setRoutineDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [googleCalendarToken, setGoogleCalendarToken] = useState("");
+  const [googleCalendarEvents, setGoogleCalendarEvents] = useState<GoogleCalendarEvent[]>([]);
+  const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false);
+  const [googleCalendarRefresh, setGoogleCalendarRefresh] = useState(0);
+  const googleCalendarClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
   useEffect(() => {
     const root = document.documentElement;
@@ -244,6 +292,16 @@ export default function App() {
   }, [user?.uid]);
 
   useEffect(() => {
+    if (document.querySelector('script[data-melo-google-identity="true"]')) return;
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.dataset.meloGoogleIdentity = "true";
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
     if (!user?.uid) {
       setPlannerTasks([]);
       setRoutineItems(initialRoutine);
@@ -272,6 +330,48 @@ export default function App() {
     if (!user?.uid || !plannerLoaded) return;
     window.localStorage.setItem("melo-planner-routine:" + user.uid, JSON.stringify(routineItems));
   }, [routineItems, plannerLoaded, user?.uid]);
+
+  useEffect(() => {
+    if (!googleCalendarToken) {
+      setGoogleCalendarEvents([]);
+      setGoogleCalendarLoading(false);
+      return;
+    }
+    let cancelled = false;
+    async function loadGoogleCalendarEvents() {
+      setGoogleCalendarLoading(true);
+      const from = new Date(plannerMonth.getFullYear(), plannerMonth.getMonth(), 1);
+      from.setDate(from.getDate() - 7);
+      const until = new Date(plannerMonth.getFullYear(), plannerMonth.getMonth() + 1, 8);
+      const params = new URLSearchParams({
+        timeMin: from.toISOString(),
+        timeMax: until.toISOString(),
+        singleEvents: "true",
+        orderBy: "startTime",
+        maxResults: "250",
+      });
+      try {
+        const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?" + params.toString(), {
+          headers: { Authorization: "Bearer " + googleCalendarToken },
+        });
+        const payload = await response.json() as { items?: GoogleCalendarEvent[]; error?: { message?: string } };
+        if (!response.ok) {
+          if (response.status === 401) setGoogleCalendarToken("");
+          throw new Error(payload.error?.message || "Google Calendar could not be loaded.");
+        }
+        if (!cancelled) setGoogleCalendarEvents((payload.items || []).filter((event) => event.status !== "cancelled"));
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Google Calendar:", error);
+          setNotice(error instanceof Error ? error.message : "Google Calendar could not be loaded.");
+        }
+      } finally {
+        if (!cancelled) setGoogleCalendarLoading(false);
+      }
+    }
+    void loadGoogleCalendarEvents();
+    return () => { cancelled = true; };
+  }, [googleCalendarToken, googleCalendarRefresh, plannerMonth]);
 
   useEffect(() => onAuthStateChanged(auth, async (nextUser) => {
     setUser(nextUser);
@@ -529,7 +629,10 @@ export default function App() {
     .filter((task) => !task.dueDate || task.dueDate >= todayKey)
     .sort((a, b) => (a.dueDate || "9999-99-99").localeCompare(b.dueDate || "9999-99-99"))
     .slice(0, 4);
-  const todayRoutineDone = routineItems.filter((item) => item.doneDates.includes(todayKey)).length;
+  const todayRoutineItems = routineItems.filter((item) => routineIsScheduled(item, todayKey));
+  const todayRoutineDone = todayRoutineItems.filter((item) => item.doneDates.includes(todayKey)).length;
+  const selectedDateRoutines = routineItems.filter((item) => routineIsScheduled(item, plannerSelectedDate));
+  const selectedDateGoogleEvents = googleCalendarEvents.filter((event) => googleEventDateKey(event) === plannerSelectedDate);
 
   function addPlannerTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -556,16 +659,157 @@ export default function App() {
     setPlannerTasks((current) => current.filter((task) => task.id !== id));
   }
 
-  function toggleRoutineItem(id: string) {
+  function toggleRoutineItem(id: string, dateKey = todayKey) {
     setRoutineItems((current) => current.map((item) => {
       if (item.id !== id) return item;
       return {
         ...item,
-        doneDates: item.doneDates.includes(todayKey)
-          ? item.doneDates.filter((date) => date !== todayKey)
-          : [...item.doneDates, todayKey],
+        doneDates: item.doneDates.includes(dateKey)
+          ? item.doneDates.filter((date) => date !== dateKey)
+          : [...item.doneDates, dateKey],
       };
     }));
+  }
+
+  function openRoutineForm(item?: RoutineItem) {
+    if (item) {
+      setRoutineEditingId(item.id);
+      setRoutineTitle(item.title);
+      setRoutineTime(item.time || "");
+      setRoutineDays(item.days ? [...item.days] : [0, 1, 2, 3, 4, 5, 6]);
+    } else {
+      setRoutineEditingId(null);
+      setRoutineTitle("");
+      setRoutineTime("After school");
+      setRoutineDays([1, 2, 3, 4, 5]);
+    }
+    setRoutineFormOpen(true);
+  }
+
+  function saveRoutineItem(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = routineTitle.trim();
+    if (!title) return;
+    if (!routineDays.length) {
+      setNotice("Choose at least one day for this routine.");
+      return;
+    }
+    const updated = { title, time: routineTime.trim() || "Any time", days: [...routineDays].sort((a, b) => a - b) };
+    if (routineEditingId) {
+      setRoutineItems((current) => current.map((item) => item.id === routineEditingId ? { ...item, ...updated } : item));
+      setNotice("Routine updated.");
+    } else {
+      setRoutineItems((current) => [{
+        id: (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : String(Date.now()),
+        ...updated,
+        doneDates: [],
+      }, ...current]);
+      setNotice("Your new routine has been added.");
+    }
+    setRoutineFormOpen(false);
+    setRoutineEditingId(null);
+  }
+
+  function deleteRoutineItem(id: string) {
+    setRoutineItems((current) => current.filter((item) => item.id !== id));
+    if (routineEditingId === id) setRoutineFormOpen(false);
+    setNotice("Routine removed.");
+  }
+
+  function connectGoogleCalendar() {
+    if (!googleCalendarClientId) {
+      setNotice("Google Calendar setup is incomplete. Add VITE_GOOGLE_CLIENT_ID under GitHub repository Settings → Secrets and variables → Actions → Variables.");
+      return;
+    }
+    const oauth = window.google?.accounts?.oauth2;
+    if (!oauth) {
+      setNotice("Google sign-in is still loading. Please try Connect again in a moment.");
+      return;
+    }
+    try {
+      const client = oauth.initTokenClient({
+        client_id: googleCalendarClientId,
+        scope: "https://www.googleapis.com/auth/calendar.events",
+        callback: (response) => {
+          if (!response.access_token || response.error) {
+            setNotice(response.error_description || "Google Calendar access was not granted.");
+            return;
+          }
+          setGoogleCalendarToken(response.access_token);
+          setNotice("Google Calendar connected for this session.");
+        },
+        error_callback: (error) => {
+          setNotice(error.message || "Google sign-in could not be opened. Try again.");
+        },
+      });
+      client.requestAccessToken({ prompt: googleCalendarToken ? "" : "consent" });
+    } catch (error) {
+      console.error("Google Calendar authorization:", error);
+      setNotice("Google Calendar could not be connected. Check your OAuth settings.");
+    }
+  }
+
+  function disconnectGoogleCalendar() {
+    const revoke = window.google?.accounts?.oauth2?.revoke;
+    if (googleCalendarToken && revoke) revoke(googleCalendarToken, () => {});
+    setGoogleCalendarToken("");
+    setGoogleCalendarEvents([]);
+    setNotice("Google Calendar disconnected from this session.");
+  }
+
+  async function addPlannerTaskToGoogle(task: PlannerTask) {
+    if (!googleCalendarToken) {
+      setNotice("Connect Google Calendar before syncing a task.");
+      return;
+    }
+    if (!task.dueDate) {
+      setNotice("Add a deadline to this task before sending it to Google Calendar.");
+      return;
+    }
+    const nextDay = new Date(task.dueDate + "T00:00:00");
+    nextDay.setDate(nextDay.getDate() + 1);
+    const eventBody = {
+      summary: task.title,
+      description: "AX Study Space · " + task.subject + " · " + task.priority + " priority",
+      start: { date: task.dueDate },
+      end: { date: localDateKey(nextDay) },
+    };
+    const endpoint = task.googleEventId
+      ? "https://www.googleapis.com/calendar/v3/calendars/primary/events/" + encodeURIComponent(task.googleEventId)
+      : "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+    try {
+      let response = await fetch(endpoint, {
+        method: task.googleEventId ? "PUT" : "POST",
+        headers: {
+          Authorization: "Bearer " + googleCalendarToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(eventBody),
+      });
+      if (response.status === 401) {
+        setGoogleCalendarToken("");
+        setNotice("Your Google access expired. Reconnect Google Calendar and try again.");
+        return;
+      }
+      if (response.status === 404 && task.googleEventId) {
+        response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + googleCalendarToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(eventBody),
+        });
+      }
+      const payload = await response.json() as GoogleCalendarEvent & { error?: { message?: string } };
+      if (!response.ok) throw new Error(payload.error?.message || "The task could not be added to Google Calendar.");
+      setPlannerTasks((current) => current.map((item) => item.id === task.id ? { ...item, googleEventId: payload.id } : item));
+      setGoogleCalendarEvents((current) => [...current.filter((item) => item.id !== payload.id), payload]);
+      setNotice("Task added to Google Calendar.");
+    } catch (error) {
+      console.error("Google Calendar task sync:", error);
+      setNotice(error instanceof Error ? error.message : "The task could not be synced.");
+    }
   }
 
   const plannerMonthDays = (() => {
@@ -1034,34 +1278,92 @@ export default function App() {
             <div className="planner-section-head"><h3>Active work</h3><small>{pendingTasks.length} remaining</small></div>
             {pendingTasks.slice().sort((a,b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999")).map((task) => <div className={"planner-task-row " + (task.dueDate && task.dueDate < todayKey ? "overdue" : "")} key={task.id}>
               <button className="planner-check" onClick={() => togglePlannerTask(task.id)} aria-label="Mark complete" />
-              <div className="planner-task-copy"><strong>{task.title}</strong><small>{task.subject} · {task.dueDate ? dateLabel(task.dueDate) : "No deadline"}</small></div><span className={"planner-priority " + task.priority}>{task.priority}</span><button className="planner-delete" onClick={() => deletePlannerTask(task.id)} aria-label="Delete task">×</button>
+              <div className="planner-task-copy"><strong>{task.title}</strong><small>{task.subject} · {task.dueDate ? dateLabel(task.dueDate) : "No deadline"}</small></div><span className={"planner-priority " + task.priority}>{task.priority}</span>{googleCalendarToken && task.dueDate && <button type="button" className="planner-google-mini" onClick={() => void addPlannerTaskToGoogle(task)}>{task.googleEventId ? "Update in Google" : "Add to Google"}</button>}<button className="planner-delete" onClick={() => deletePlannerTask(task.id)} aria-label="Delete task">×</button>
             </div>)}
             {!pendingTasks.length && <div className="planner-empty"><span>✓</span><strong>Nothing pending.</strong><small>Enjoy the breathing room or add a new task.</small></div>}
             {completedTasks.length > 0 && <><div className="planner-section-head"><h3>Completed</h3><small>{completedTasks.length}</small></div>{completedTasks.map((task) => <div className="planner-task-row completed" key={task.id}><button className="planner-check checked" onClick={() => togglePlannerTask(task.id)} aria-label="Reopen task">✓</button><div className="planner-task-copy"><strong>{task.title}</strong><small>{task.subject} · Completed</small></div><button className="planner-delete" onClick={() => deletePlannerTask(task.id)} aria-label="Delete task">×</button></div>)}</>}
           </>}
 
           {plannerView === "calendar" && <>
-            <div className="planner-greeting-row"><div><small>DEADLINES AT A GLANCE</small><h3>Your calendar</h3></div><span className="planner-count-pill">{plannerTasks.length} events</span></div>
+            <div className="planner-greeting-row"><div><small>YOUR SCHEDULE, IN ONE PLACE</small><h3>Calendar</h3></div><span className="planner-count-pill">{plannerTasks.length + googleCalendarEvents.length} events</span></div>
+            <section className="planner-google-panel">
+              <div className="planner-google-brand"><span className="planner-google-mark">G</span><span><strong>Google Calendar</strong><small>{googleCalendarToken ? "Connected for this session" : "Bring your schedules together"}</small></span></div>
+              <div className="planner-google-actions">
+                {googleCalendarToken ? <>
+                  <button type="button" onClick={() => setGoogleCalendarRefresh((value) => value + 1)} disabled={googleCalendarLoading}>{googleCalendarLoading ? "Syncing…" : "↻ Sync now"}</button>
+                  <button type="button" className="subtle" onClick={disconnectGoogleCalendar}>Disconnect</button>
+                </> : <button type="button" onClick={connectGoogleCalendar}>Connect Google Calendar ↗</button>}
+              </div>
+              {!googleCalendarClientId && <small className="planner-google-help">Setup needed: add <b>VITE_GOOGLE_CLIENT_ID</b> as a GitHub Actions repository variable to enable connection.</small>}
+              {googleCalendarToken && <small className="planner-google-help">Google events appear here. Dated Melo tasks can be added to your Google Calendar from the agenda.</small>}
+            </section>
             <section className="planner-calendar-card">
-              <div className="planner-calendar-top"><button onClick={() => setPlannerMonth(new Date(plannerMonth.getFullYear(), plannerMonth.getMonth()-1,1))}>‹</button><strong>{plannerMonth.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</strong><button onClick={() => setPlannerMonth(new Date(plannerMonth.getFullYear(),plannerMonth.getMonth()+1,1))}>›</button></div>
-              <div className="planner-calendar-grid">{["M","T","W","T","F","S","S"].map((day,index)=><small key={day+index}>{day}</small>)}
+              <div className="planner-calendar-heading"><span><small>MONTH VIEW</small><strong>{plannerMonth.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</strong></span><button type="button" onClick={() => {setPlannerMonth(new Date(new Date().getFullYear(),new Date().getMonth(),1));setPlannerSelectedDate(todayKey);}}>Today</button></div>
+              <div className="planner-calendar-top"><button type="button" aria-label="Previous month" onClick={() => setPlannerMonth(new Date(plannerMonth.getFullYear(), plannerMonth.getMonth()-1,1))}>‹</button><span>Choose a day</span><button type="button" aria-label="Next month" onClick={() => setPlannerMonth(new Date(plannerMonth.getFullYear(),plannerMonth.getMonth()+1,1))}>›</button></div>
+              <div className="planner-calendar-grid">{["MON","TUE","WED","THU","FRI","SAT","SUN"].map((day,index)=><small key={day+index}>{day}</small>)}
                 {plannerMonthDays.map((day,index) => {
                   if (!day) return <span className="planner-calendar-blank" key={"blank-"+index}/>;
                   const dateKey = localDateKey(new Date(plannerMonth.getFullYear(),plannerMonth.getMonth(),day));
                   const hasTask = plannerTasks.some((task) => task.dueDate === dateKey && !task.done);
-                  return <button key={dateKey} className={(plannerSelectedDate === dateKey ? "selected " : "") + (dateKey === todayKey ? "today " : "") + (hasTask ? "has-task" : "")} onClick={() => setPlannerSelectedDate(dateKey)}>{day}{hasTask && <i/>}</button>;
+                  const hasGoogleEvent = googleCalendarEvents.some((event) => googleEventDateKey(event) === dateKey);
+                  const hasRoutine = routineItems.some((item) => routineIsScheduled(item, dateKey));
+                  return <button type="button" key={dateKey} className={(plannerSelectedDate === dateKey ? "selected " : "") + (dateKey === todayKey ? "today " : "") + (hasTask ? "has-task " : "") + (hasGoogleEvent ? "has-google " : "") + (hasRoutine ? "has-routine" : "")} onClick={() => setPlannerSelectedDate(dateKey)}>
+                    <span className="planner-calendar-day-number">{day}</span>
+                    <span className="planner-calendar-dots">{hasTask && <i className="task-dot"/>}{hasGoogleEvent && <i className="google-dot"/>}{hasRoutine && <i className="routine-dot"/>}</span>
+                  </button>;
                 })}
               </div>
+              <div className="planner-calendar-legend"><span><i className="task-dot"/> Melo tasks</span><span><i className="google-dot"/> Google events</span><span><i className="routine-dot"/> Routines</span></div>
             </section>
-            <div className="planner-section-head"><h3>{dateLabel(plannerSelectedDate)}</h3><button onClick={() => {setPlannerDueDate(plannerSelectedDate);setPlannerView("tasks");}}>＋ Add deadline</button></div>
-            {selectedDateTasks.length ? selectedDateTasks.map((task)=><div className={"planner-task-row "+(task.done?"completed":"")} key={task.id}><button className={"planner-check "+(task.done?"checked":"")} onClick={()=>togglePlannerTask(task.id)}>{task.done?"✓":""}</button><div className="planner-task-copy"><strong>{task.title}</strong><small>{task.subject} · {task.done?"Completed":task.priority+" priority"}</small></div></div>) : <div className="planner-empty"><span>◷</span><strong>No deadlines on this day.</strong><small>Tap “Add deadline” to plan ahead.</small></div>}
+            <div className="planner-agenda-head"><div><small>DAY AGENDA</small><h3>{new Date(plannerSelectedDate + "T00:00:00").toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}</h3></div><button type="button" onClick={() => {setPlannerDueDate(plannerSelectedDate);setPlannerView("tasks");}}>＋ Add task</button></div>
+            <div className="planner-agenda-section">
+              <div className="planner-section-head"><h3>Melo tasks</h3><small>{selectedDateTasks.length}</small></div>
+              {selectedDateTasks.length ? selectedDateTasks.map((task)=><div className={"planner-task-row "+(task.done?"completed":"")} key={task.id}>
+                <button className={"planner-check "+(task.done?"checked":"")} onClick={()=>togglePlannerTask(task.id)} aria-label={task.done?"Reopen task":"Complete task"}>{task.done?"✓":""}</button>
+                <div className="planner-task-copy"><strong>{task.title}</strong><small>{task.subject} · {task.done?"Completed":task.priority+" priority"}</small></div>
+                {googleCalendarToken && <button type="button" className="planner-google-mini" onClick={() => void addPlannerTaskToGoogle(task)}>{task.googleEventId ? "Update in Google" : "Add to Google"}</button>}
+              </div>) : <div className="planner-empty"><span>◷</span><strong>No Melo tasks planned.</strong><small>Add a task to keep this day on track.</small></div>}
+            </div>
+            <div className="planner-agenda-section">
+              <div className="planner-section-head"><h3>Google Calendar</h3><small>{selectedDateGoogleEvents.length}{googleCalendarLoading ? " · syncing" : ""}</small></div>
+              {selectedDateGoogleEvents.length ? selectedDateGoogleEvents.map((event)=><div className="planner-google-event" key={event.id}>
+                <span className="planner-google-event-time">{googleEventTimeLabel(event)}</span><div><strong>{event.summary || "Untitled event"}</strong><small>Google Calendar</small></div>{event.htmlLink && <a href={event.htmlLink} target="_blank" rel="noreferrer">Open ↗</a>}
+              </div>) : <div className="planner-empty planner-empty-compact"><span>G</span><strong>{googleCalendarToken ? "No Google events on this day." : "Connect Google Calendar to see your events."}</strong><small>{googleCalendarToken ? "Your other calendar events will appear here." : "Your Google events stay separate from your Melo tasks."}</small></div>}
+            </div>
+            <div className="planner-agenda-section">
+              <div className="planner-section-head"><h3>Scheduled routines</h3><small>{selectedDateRoutines.length}</small></div>
+              {selectedDateRoutines.length ? selectedDateRoutines.map((item)=><div className={"planner-routine-row planner-agenda-routine "+(item.doneDates.includes(plannerSelectedDate)?"done":"")} key={item.id}>
+                <button type="button" className="planner-routine-check" onClick={() => toggleRoutineItem(item.id, plannerSelectedDate)}>{item.doneDates.includes(plannerSelectedDate)?"✓":""}</button>
+                <span className="planner-routine-copy"><strong>{item.title}</strong><small>{item.time}</small></span><b>{item.doneDates.includes(plannerSelectedDate)?"Done":"Routine"}</b>
+              </div>) : <div className="planner-empty planner-empty-compact"><span>◷</span><strong>No routines scheduled.</strong><small>You can build your own routine in the Routine tab.</small></div>}
+            </div>
           </>}
 
           {plannerView === "routine" && <>
-            <div className="planner-greeting-row"><div><small>SMALL STEPS, BIG MOMENTUM</small><h3>Your daily routine</h3></div><span className="planner-count-pill">{todayRoutineDone}/{routineItems.length} done</span></div>
-            <div className="planner-routine-hero"><strong>{Math.round(todayRoutineDone/Math.max(1,routineItems.length)*100)}%</strong><span>of today's routine complete</span><div><i style={{width:(todayRoutineDone/Math.max(1,routineItems.length)*100)+"%"}}/></div></div>
-            {routineItems.map((item)=><button key={item.id} className={"planner-routine-row "+(item.doneDates.includes(todayKey)?"done":"")} onClick={()=>toggleRoutineItem(item.id)}><span className="planner-routine-check">{item.doneDates.includes(todayKey)?"✓":""}</span><span><strong>{item.title}</strong><small>{item.time}</small></span><b>{item.doneDates.includes(todayKey)?"Done":"Mark done"}</b></button>)}
-            <p className="planner-helper-note">These are suggested Class XI PCM habits. Tick them off as you complete them, or simply use the list as a guide.</p>
+            <div className="planner-greeting-row"><div><small>BUILD A ROUTINE THAT FITS YOU</small><h3>Your routines</h3></div><button type="button" className="planner-add-mini" onClick={() => openRoutineForm()}>＋ Create routine</button></div>
+            <div className="planner-routine-hero"><strong>{Math.round(todayRoutineDone/Math.max(1,todayRoutineItems.length)*100)}%</strong><span>{todayRoutineDone} of {todayRoutineItems.length} routines completed today</span><div><i style={{width:(todayRoutineDone/Math.max(1,todayRoutineItems.length)*100)+"%"}}/></div></div>
+            {routineFormOpen && <form className="planner-routine-form" onSubmit={saveRoutineItem}>
+              <div className="planner-routine-form-heading"><strong>{routineEditingId ? "Edit routine" : "Create a routine"}</strong><small>Set a time and choose the days it repeats.</small></div>
+              <label>Routine name<input value={routineTitle} onChange={(event) => setRoutineTitle(event.target.value)} placeholder="e.g. Revise Physics formulas" maxLength={70} required /></label>
+              <label>Time or reminder<input value={routineTime} onChange={(event) => setRoutineTime(event.target.value)} placeholder="e.g. 6:30 PM · After school" maxLength={50} /></label>
+              <fieldset><legend>Repeat on</legend><div className="planner-weekday-picker">
+                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((day,index)=><label key={day} className={routineDays.includes(index)?"picked":""}><input type="checkbox" checked={routineDays.includes(index)} onChange={(event)=>setRoutineDays((current)=>event.target.checked?[...current,index]:current.filter((value)=>value!==index))}/><span>{day}</span></label>)}
+              </div></fieldset>
+              <div className="planner-routine-form-actions"><button type="button" className="planner-routine-cancel" onClick={() => setRoutineFormOpen(false)}>Cancel</button><button className="planner-submit" type="submit">{routineEditingId ? "Save changes" : "Create routine"}</button></div>
+            </form>}
+            <div className="planner-section-head"><h3>Routine library</h3><small>{routineItems.length} saved</small></div>
+            {routineItems.length ? routineItems.map((item)=>{
+              const scheduledToday = routineIsScheduled(item,todayKey);
+              const doneToday = scheduledToday && item.doneDates.includes(todayKey);
+              return <div key={item.id} className={"planner-routine-row planner-routine-manage "+(doneToday?"done":"")}>
+                <button type="button" disabled={!scheduledToday} className="planner-routine-check" onClick={()=>toggleRoutineItem(item.id)} aria-label={doneToday?"Mark not done":"Mark routine done"}>{doneToday?"✓":""}</button>
+                <span className="planner-routine-copy"><strong>{item.title}</strong><small>{item.time} · {routineScheduleLabel(item.days)}</small></span>
+                <b>{scheduledToday?(doneToday?"Done":"Today"):"Other days"}</b>
+                <button type="button" className="planner-routine-edit" onClick={()=>openRoutineForm(item)} aria-label={"Edit "+item.title}>Edit</button>
+                <button type="button" className="planner-routine-remove" onClick={()=>deleteRoutineItem(item.id)} aria-label={"Delete "+item.title}>×</button>
+              </div>;
+            }) : <div className="planner-empty"><span>◷</span><strong>No routines yet.</strong><small>Create your first routine and make it yours.</small></div>}
+            <p className="planner-helper-note">Create as many routines as you need, choose the days they repeat, and check them off as you go. Your routine is saved on this device.</p>
           </>}
 
           {plannerView === "progress" && <>
